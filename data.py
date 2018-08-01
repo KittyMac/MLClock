@@ -62,6 +62,7 @@ class ClockGenerator(keras.utils.Sequence):
 			angle = start + delta * idx
 			img = self.generateClockFace(angle)
 			np.copyto(input_images[idx],np.array(img).reshape(IMG_SIZE[1],IMG_SIZE[0],IMG_SIZE[2]))
+			input_images[idx] /= 255.0
 			output_values[idx] = angle / 360
 		
 		return input_images,output_values
@@ -71,7 +72,7 @@ class ClockGenerator(keras.utils.Sequence):
 if __name__ == '__main__':
 	generator = ClockGenerator()
 	
-	input,output = generator.generateClockFaces(24)
+	input,output = generator.generateClockFaces(24)	
 	for n in range(0,len(input)):
 		(Image.fromarray(input[n].reshape(IMG_SIZE[1],IMG_SIZE[0])).convert("L")).save('/tmp/clock_%f.png' % (output[n]))
 	
