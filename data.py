@@ -58,18 +58,16 @@ class ClockGenerator(keras.utils.Sequence):
 		input_images = np.zeros((num,IMG_SIZE[1],IMG_SIZE[0],IMG_SIZE[2]), dtype='float32')
 		output_values = np.zeros((num,1), dtype='float32')
 		
-		idx = 0
-		for angle in frange(start,end,delta):
+		for idx in range(0,num):
+			angle = start + delta * idx
 			img = self.generateClockFace(angle)
 			np.copyto(input_images[idx],np.array(img).reshape(IMG_SIZE[1],IMG_SIZE[0],IMG_SIZE[2]))
 			output_values[idx] = angle / 360
-			idx += 1
 		
 		return input_images,output_values
 			
 
 
-# Test the GameGenerator
 if __name__ == '__main__':
 	generator = ClockGenerator()
 	
