@@ -3,6 +3,7 @@ from __future__ import division
 from keras import backend as keras
 
 from keras.preprocessing import sequence
+from dateutil import parser
 import numpy as np
 import coremltools
 import model
@@ -86,14 +87,29 @@ def Test():
 	
 	for i in range(0,len(label)):
 		print(generator.convertOutputToTime(label[i]), generator.convertOutputToTime(results[i]))
+
+def Test2(timeAsString):
+	parsedTime = parser.parse(timeAsString)
+	
+	_model = model.createModel(True)
+	
+	generator = data.ClockGenerator()
+	
+	train,label = generator.generateClockFace(parsedTime.hour, parsedTime.minute)
+	results = _model.predict(train)
+	
+	for i in range(0,len(label)):
+		print(generator.convertOutputToTime(label[i]), generator.convertOutputToTime(results[i]))
 	
 
 if __name__ == '__main__':
 	if sys.argv >= 2:
 		if sys.argv[1] == "test":
 			Test()
-		if sys.argv[1] == "learn":
+		elif sys.argv[1] == "learn":
 			Learn()
+		else:
+			Test2(sys.argv[2])
 	else:
 		Test()
 	
