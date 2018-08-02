@@ -86,7 +86,7 @@ def Test():
 	results = _model.predict(train)
 	
 	for i in range(0,len(label)):
-		print(generator.convertOutputToTime(label[i]), generator.convertOutputToTime(results[i]))
+		print("expected", generator.convertOutputToTime(label[i]), "predicted", generator.convertOutputToTime(results[i]))
 
 def Test2(timeAsString):
 	parsedTime = parser.parse(timeAsString)
@@ -99,7 +99,9 @@ def Test2(timeAsString):
 	results = _model.predict(train)
 	
 	for i in range(0,len(label)):
-		print(generator.convertOutputToTime(label[i]), generator.convertOutputToTime(results[i]))
+		filepath = '/tmp/clock_%s.png' % (generator.convertOutputToTime(results[i]))
+		generator.saveImageToFile(train[i], filepath)
+		print("expected", generator.convertOutputToTime(label[i]), "predicted", generator.convertOutputToTime(results[i]), "file", filepath)
 	
 
 if __name__ == '__main__':
