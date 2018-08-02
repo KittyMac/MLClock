@@ -56,24 +56,29 @@ class ClockGenerator(keras.utils.Sequence):
 		delta = 360 / num
 		
 		input_images = np.zeros((num,IMG_SIZE[1],IMG_SIZE[0],IMG_SIZE[2]), dtype='float32')
-		output_values = np.zeros((num,1), dtype='float32')
+		output_values = np.zeros((num,12), dtype='float32')
 		
 		for idx in range(0,num):
 			angle = start + delta * idx
 			img = self.generateClockFace(angle)
 			np.copyto(input_images[idx],np.array(img).reshape(IMG_SIZE[1],IMG_SIZE[0],IMG_SIZE[2]))
 			input_images[idx] /= 255.0
-			output_values[idx] = angle / 360
-		
+			
+			hour_idx = int((angle / 360) * 12)
+			output_values[idx][hour_idx] = 1
+				
 		return input_images,output_values
 	
 	def convertOutputToTime(self,output):
+		
+		return np.argmax(output)
+		
 		# [0] is the normalized rotation of the hour hand
 		# [1] is the normalized rotation of the minute hand
-		t = math.modf(output[0] * 12)
-		if t[1] == 0:
-			t = (t[0],12)
-		return "%02d:%02d" % (t[1], t[0] * 60)
+		#t = math.modf(output[0] * 12)
+		#if t[1] == 0:
+		#	t = (t[0],12)
+		#return "%02d:%02d" % (t[1], t[0] * 60)
 		
 	
 	def saveImageToFile(self,img,filepath):

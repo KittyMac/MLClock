@@ -80,7 +80,7 @@ def Test():
 	
 	generator = data.ClockGenerator()
 	
-	train,label = generator.generateClockFaces(12)
+	train,label = generator.generateClockFaces(36)
 	
 	results = _model.predict(train)
 	
