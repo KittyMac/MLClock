@@ -81,12 +81,20 @@ def Test():
 	
 	generator = data.ClockGenerator()
 	
-	train,label = generator.generateClockFaces(36)
+	train,label = generator.generateClockFaces(720)
 	
 	results = _model.predict(train)
 	
+	
+	correct = 0
 	for i in range(0,len(label)):
-		print("expected", generator.convertOutputToTime(label[i]), "predicted", generator.convertOutputToTime(results[i]))
+		expected = generator.convertOutputToTime(label[i])
+		predicted = generator.convertOutputToTime(results[i])
+		if expected == predicted:
+			correct += 1
+		print("expected", expected, "predicted", predicted)
+	print("correct", correct, "total", len(label))
+	
 
 def Test2(timeAsString):
 	parsedTime = parser.parse(timeAsString)
