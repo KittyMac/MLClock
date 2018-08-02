@@ -66,7 +66,19 @@ class ClockGenerator(keras.utils.Sequence):
 			output_values[idx] = angle / 360
 		
 		return input_images,output_values
-			
+	
+	def convertOutputToTime(self,output):
+		# [0] is the normalized rotation of the hour hand
+		# [1] is the normalized rotation of the minute hand
+		t = math.modf(output[0] * 12)
+		if t[1] == 0:
+			t = (t[0],12)
+		return "%02d:%02d" % (t[1], t[0] * 60)
+		
+	
+	def saveImageToFile(self,img,filepath):
+		img = img.reshape(IMG_SIZE[1],IMG_SIZE[0]) * 255.0
+		Image.fromarray(img).convert("L").save(filepath)
 
 
 if __name__ == '__main__':
@@ -74,6 +86,6 @@ if __name__ == '__main__':
 	
 	input,output = generator.generateClockFaces(24)	
 	for n in range(0,len(input)):
-		(Image.fromarray(input[n].reshape(IMG_SIZE[1],IMG_SIZE[0])).convert("L")).save('/tmp/clock_%f.png' % (output[n]))
+		generator.saveImageToFile(input[n], '/tmp/clock_%s.png' % (generator.convertOutputToTime(output[n])))
 	
 	

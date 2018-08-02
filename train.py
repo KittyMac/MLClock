@@ -18,6 +18,19 @@ import math
 import signal
 import time
 
+######
+# allows us to used ctrl-c to end gracefully instead of just dying
+######
+class SignalHandler:
+  stop_processing = False
+  def __init__(self):
+    signal.signal(signal.SIGINT, self.exit_gracefully)
+    signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+  def exit_gracefully(self,signum, frame):
+    self.stop_processing = True
+######
+
 def Learn():
 	
 	# 1. create the model
@@ -32,8 +45,12 @@ def Learn():
 	iterations = 50000
 		
 	print("beginning training")
+	handler = SignalHandler()
 	i = 0
 	while True:
+		
+		if handler.stop_processing:
+			break
 		
 		n = int(12 + random.random() * 360)
 		print(i)
@@ -56,9 +73,27 @@ def Train(generator,_model,n):
 	if n < batch_size:
 		batch_size = n
 	
-	_model.fit(train,label,batch_size=batch_size,shuffle=True,validation_split=0.2,epochs=1,verbose=1)
+	_model.fit(train,label,batch_size=batch_size,shuffle=True,epochs=1,verbose=1)
 
+def Test():
+	_model = model.createModel(True)
+	
+	generator = data.ClockGenerator()
+	
+	train,label = generator.generateClockFaces(12)
+	
+	results = _model.predict(train)
+	
+	for i in range(0,len(label)):
+		print(generator.convertOutputToTime(label[i]), generator.convertOutputToTime(results[i]))
+	
 
 if __name__ == '__main__':
-	Learn()
+	if sys.argv >= 2:
+		if sys.argv[1] == "test":
+			Test()
+		if sys.argv[1] == "learn":
+			Learn()
+	else:
+		Test()
 	
