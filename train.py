@@ -92,7 +92,7 @@ def Test():
 		predicted = generator.convertOutputToTime(results[i])
 		if expected == predicted:
 			correct += 1
-		print("expected", expected, "predicted", predicted)
+		print("expected", expected, "predicted", predicted, "correct", expected == predicted)
 	print("correct", correct, "total", len(label))
 	
 

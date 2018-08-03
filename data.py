@@ -95,10 +95,10 @@ class ClockGenerator(keras.utils.Sequence):
 			
 			hour_normalized = (combined_minute / 60) / 12
 			minute_normalized = (combined_minute % 60) / 60
-			
+						
 			hour_idx = int(hour_normalized * 12)
 			minute_idx = int(minute_normalized * 60)
-			
+						
 			img = self.generateClockImage(
 				start + (end-start) * hour_normalized, 
 				start + (end-start) * minute_normalized)
@@ -112,7 +112,7 @@ class ClockGenerator(keras.utils.Sequence):
 	
 	def convertOutputToTime(self,output):
 		hour = np.argmax(output[0:12])
-		minute = np.argmax(output[12:71])
+		minute = np.argmax(output[12:72])
 		if hour == 0:
 			hour = 12
 		return "%02d:%02d" % (hour,minute)
