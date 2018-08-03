@@ -43,7 +43,7 @@ def Learn():
 	batch_size = 1
 	generator = data.ClockGenerator()
 	
-	iterations = 50000
+	iterations = 100000
 		
 	print("beginning training")
 	handler = SignalHandler()
@@ -53,7 +53,7 @@ def Learn():
 		if handler.stop_processing:
 			break
 		
-		n = int(12 + random.random() * 360)
+		n = int(random.random() * 43200)
 		print(i)
 		Train(generator,_model,n)
 		i += n
@@ -81,7 +81,7 @@ def Test():
 	
 	generator = data.ClockGenerator()
 	
-	train,label = generator.generateClockFaces(720)
+	train,label = generator.generateClockFaces(12*60*60)
 	
 	results = _model.predict(train)
 	

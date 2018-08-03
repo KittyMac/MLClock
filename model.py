@@ -37,7 +37,7 @@ def createModel(loadFromDisk):
 	model.add(Activation('relu'))
 	model.add(Dense(128))
 	model.add(Activation('relu'))
-	model.add(Dense(12+60))
+	model.add(Dense(12+60+60))
 	model.add(Activation('sigmoid'))
 
 	model.compile(loss='binary_crossentropy', optimizer="rmsprop", metrics=['accuracy'])
