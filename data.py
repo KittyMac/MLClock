@@ -46,19 +46,28 @@ class ClockGenerator(keras.utils.Sequence):
 		
 	def generateClockImage(self,hourHandAngle,minuteHandAngle,secondHandAngle):
 		
+		variance = 4
+		
+		offset = (int(random.random() * variance - variance / 2), int(random.random() * variance - variance / 2))
+		rotation_offset = (random.random() * variance - variance / 2) * 2
+		
 		# simulated real clock with photo drawing
-		img = Image.new('RGBA', (IMG_SIZE[1], IMG_SIZE[0]), (255, 255, 255, 255))
+		img = Image.new('RGBA', (IMG_SIZE[1], IMG_SIZE[0]), (int(127 + random.random() * 128),
+			int(127 + random.random() * 128),
+			int(127 + random.random() * 128)))
 		
 		if INCLUDE_SECONDS_HAND:
-			secondImgRotated = secondImg.rotate( (-secondHandAngle)+90 )
-		hourImgRotated = hourImg.rotate( (-hourHandAngle)+90 )
-		minuteImgRotated = minuteImg.rotate( (-minuteHandAngle)+90 )
+			secondImgRotated = secondImg.rotate( (-secondHandAngle)+90+rotation_offset )
+		hourImgRotated = hourImg.rotate( (-hourHandAngle)+90+rotation_offset )
+		minuteImgRotated = minuteImg.rotate( (-minuteHandAngle)+90+rotation_offset )
 		
-		img.paste(faceImg, (0,0), faceImg)
+		faceImgRotated = faceImg.rotate( rotation_offset )
+		
+		img.paste(faceImgRotated, offset, faceImgRotated)
 		if INCLUDE_SECONDS_HAND:
-			img.paste(secondImgRotated, (0,0), secondImgRotated)
-		img.paste(hourImgRotated, (0,0), hourImgRotated)
-		img.paste(minuteImgRotated, (0,0), minuteImgRotated)
+			img.paste(secondImgRotated, offset, secondImgRotated)
+		img.paste(hourImgRotated, offset, hourImgRotated)
+		img.paste(minuteImgRotated, offset, minuteImgRotated)
 		
 		return img.convert('L')
 		

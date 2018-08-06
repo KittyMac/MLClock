@@ -8,6 +8,8 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
     var captureHelper = CameraCaptureHelper(cameraPosition: .back)
     var model:VNCoreMLModel? = nil
     var overrideImage:CIImage? = nil
+    var displayedClickConfidence:Float = 0.0
+    
     
     func playCameraImage(_ cameraCaptureHelper: CameraCaptureHelper, image: CIImage, originalImage: CIImage, frameNumber:Int, fps:Int) {
         
@@ -75,15 +77,22 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
                 
                 var clockString = String(format: "%02d:%02d", bestHour, bestMinute)
                 
-                if bestHourConfidence < 0.7 || bestMinuteConfidence < 0.7 {
+                if bestHourConfidence < 0.1 || bestMinuteConfidence < 0.1 {
                     clockString = "--:--"
                 } else {
                     print("\(clockString) ---- \(bestHourConfidence)  \(bestMinuteConfidence)")
                 }
                 
-                DispatchQueue.main.async {
-                    self.clockLabel.label.text = clockString
+                if bestHourConfidence + bestMinuteConfidence > displayedClickConfidence {
+                    
+                    displayedClickConfidence = bestHourConfidence + bestMinuteConfidence
+                    
+                    DispatchQueue.main.async {
+                        self.clockLabel.label.text = clockString
+                    }
                 }
+                
+                displayedClickConfidence -= 0.001
             }
             
         } catch {
@@ -113,11 +122,11 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
         mainBundlePath = "bundle://Assets/main/main.xml"
         loadView()
         
-        //overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/clock_02.46.png")))
+        //overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/cropped_clock3.jpg")))
         
         captureHelper.delegate = self
         captureHelper.scaledImagesSize = CGSize(width: 128, height: 128)
-        captureHelper.delegateWantsScaledImages = true
+        //captureHelper.delegateWantsScaledImages = true
         captureHelper.delegateWantsPerspectiveImages = true
         captureHelper.delegateWantsPlayImages = true
         
