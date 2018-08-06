@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Object id="styles" xmlns="http://schema.smallplanet.com/PlanetUI">
+
+    <Button styleId="ButtonStd" backgroundColor="#AAAAAAFF" backgroundColorHighlighted="#888888FF" cornerRadius="5"/>
+    
+    <Button styleId="ButtonDelete" backgroundColor="#e14329FF" backgroundColorHighlighted="#ae341fFF" cornerRadius="5"/>
+
+    <Label styleId="LabelClock" fontName="GillSans-SemiBold" fontSize="72" textColor="#DDDDDDFF" textAlignment="center" />
+
+    <Label styleId="LabelSmall" fontName="GillSans" fontSize="16" textColor="#111111FF" />
+    <Label styleId="LabelSmallBld" fontName="GillSans-SemiBold" fontSize="16" textColor="#111111FF" />
+
+    <Label styleId="LabelStd" fontName="GillSans" fontSize="18" textColor="#000000FF" />
+    <Label styleId="LabelBld" fontName="GillSans-SemiBold" fontSize="18" textColor="#000000FF" />
+    
+</Object>
