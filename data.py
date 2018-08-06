@@ -20,6 +20,11 @@ from PIL import Image,ImageDraw
 import signal
 import time
 
+faceImg = Image.open('meta/face.png', 'r').convert('RGBA')
+secondImg = Image.open('meta/second.png', 'r').convert('RGBA')
+minuteImg = Image.open('meta/minute.png', 'r').convert('RGBA')
+hourImg = Image.open('meta/hour.png', 'r').convert('RGBA')
+
 def frange(start, stop, step):
 	i = start
 	while i < stop:
@@ -39,6 +44,23 @@ class ClockGenerator(keras.utils.Sequence):
 	    return math.cos(angle) * (px) - math.sin(angle) * (py), math.sin(angle) * (px) + math.cos(angle) * (py)
 		
 	def generateClockImage(self,hourHandAngle,minuteHandAngle,secondHandAngle):
+		
+		# simulated real clock with photo drawing
+		img = Image.new('RGBA', (IMG_SIZE[1], IMG_SIZE[0]), (255, 255, 255, 255))
+		
+		secondImgRotated = secondImg.rotate( (-secondHandAngle)+90 )
+		hourImgRotated = hourImg.rotate( (-hourHandAngle)+90 )
+		minuteImgRotated = minuteImg.rotate( (-minuteHandAngle)+90 )
+		
+		img.paste(faceImg, (0,0), faceImg)
+		img.paste(secondImgRotated, (0,0), secondImgRotated)
+		img.paste(hourImgRotated, (0,0), hourImgRotated)
+		img.paste(minuteImgRotated, (0,0), minuteImgRotated)
+		
+		return img.convert('L')
+		
+		# simulated clock with polygon drawing
+		'''
 		img = Image.new('RGB', (IMG_SIZE[1], IMG_SIZE[0]), (255, 255, 255, 255))
 		
 		draw = ImageDraw.Draw(img)
@@ -54,6 +76,7 @@ class ClockGenerator(keras.utils.Sequence):
 		draw.line((origin[0], origin[1], origin[0]+secondHand[0], origin[1]+secondHand[1]), width=1, fill=(100,100,100))
 		
 		return img.convert('L')
+		'''
 	
 	def generateClockFace(self, hours, minutes):
 		start = 0
