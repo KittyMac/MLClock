@@ -11,7 +11,7 @@ import os
 
 INCLUDE_SECONDS_HAND = False
 MODEL_H5_NAME = "clock.h5"
-MODEL_COREML_NAME = "clock.mlmodel"
+MODEL_COREML_NAME = "ios/MLclock/Assets/main/clock.mlmodel"
 IMG_SIZE = [128,128,1]
 
 def doesModelExist():
