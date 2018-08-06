@@ -15,7 +15,7 @@ this code is responsible for generating the model architecture for use in traini
 
 ### data.py
 
-this code is responsible for generating augmented training data. It does this by using images taken of an existing clock, and composing them such that a clock image can be generated with near realistic accuracy. data.py also includes some to improve data augemntation, by adjusting coloration, rotation, and offset of the generated image.
+this code is responsible for generating augmented training data. It does this by using images taken of an existing clock, and composing them such that a clock image can be generated with near realistic accuracy. data.py also includes some data augemntation by adjusting coloration, rotation, and offset of the generated clock face.  
 
 if you run data.py directly it will generate some sample images to /tmp for manual verification.
 
