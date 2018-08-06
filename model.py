@@ -31,11 +31,11 @@ def createModel(loadFromDisk):
 	model.add(Dropout(0.1))
 
 	model.add(Flatten())
+	model.add(Dense(768))
+	model.add(Activation('relu'))
 	model.add(Dense(512))
 	model.add(Activation('relu'))
 	model.add(Dense(256))
-	model.add(Activation('relu'))
-	model.add(Dense(128))
 	model.add(Activation('relu'))
 	model.add(Dense(12+60+60))
 	model.add(Activation('sigmoid'))

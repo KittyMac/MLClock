@@ -43,7 +43,7 @@ def Learn():
 	batch_size = 1
 	generator = data.ClockGenerator()
 	
-	iterations = 100000
+	iterations = 250000
 		
 	print("beginning training")
 	handler = SignalHandler()
