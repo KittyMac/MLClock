@@ -18,6 +18,7 @@ import math
 
 import signal
 import time
+import coremltools
 
 ######
 # allows us to used ctrl-c to end gracefully instead of just dying
@@ -63,7 +64,20 @@ def Learn():
 				
 	
 	_model.save(model.MODEL_H5_NAME)
+	
 
+def Convert():
+	output_labels = []
+	for i in range(0,12):
+		output_labels.append("hour%d" % i)
+	for i in range(0,60):
+		output_labels.append("minute%d" % i)
+		
+	coreml_model = coremltools.converters.keras.convert(model.MODEL_H5_NAME,input_names='image',image_input_names='image',class_labels=output_labels, image_scale=1/255.0)
+	coreml_model.author = 'Rocco Bowling'   
+	coreml_model.short_description = 'model to tell time off of an analog clock'
+	coreml_model.input_description['image'] = 'image of the clock face'
+	coreml_model.save(model.MODEL_COREML_NAME)
 
 
 def Train(generator,_model,n):
@@ -118,6 +132,8 @@ if __name__ == '__main__':
 			Test()
 		elif sys.argv[1] == "learn":
 			Learn()
+		elif sys.argv[1] == "convert":
+			Convert()
 		else:
 			Test2(sys.argv[2])
 	else:
