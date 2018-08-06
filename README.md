@@ -10,7 +10,7 @@ How it works
 
 ### model.py
 
-this code is responsible for generating the model architecture for use in training. the current model works by accepting a 128x128 image as input, and 72 or 132 outputs. The outputs are a multi-hot array corresponding to the hour, minute, and/or second that the clock face represents. So if it is 4:17 as in the above photo, we would have the 3 index and the 29 index be hot. Not all analog clocks include a seconds hand, so you can tweak that by setting INCLUDE_SECONDS_HAND.
+this code is responsible for generating the model architecture for use in training. the current model works by accepting a 128x128 image as input, and 72 or 132 outputs. The outputs are a multi-hot array corresponding to the hour, minute, and/or second that the clock face represents. So if it is 4:46 as in the above photo, we would have the 3 index and the 58 index be hot. Not all analog clocks include a seconds hand, so you can tweak that by setting INCLUDE_SECONDS_HAND.
 
 
 ### data.py
