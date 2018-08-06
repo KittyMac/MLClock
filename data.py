@@ -14,6 +14,7 @@ import random
 import time
 import math
 import model
+from model import INCLUDE_SECONDS_HAND
 from model import IMG_SIZE
 from PIL import Image,ImageDraw
 
@@ -48,12 +49,14 @@ class ClockGenerator(keras.utils.Sequence):
 		# simulated real clock with photo drawing
 		img = Image.new('RGBA', (IMG_SIZE[1], IMG_SIZE[0]), (255, 255, 255, 255))
 		
-		secondImgRotated = secondImg.rotate( (-secondHandAngle)+90 )
+		if INCLUDE_SECONDS_HAND:
+			secondImgRotated = secondImg.rotate( (-secondHandAngle)+90 )
 		hourImgRotated = hourImg.rotate( (-hourHandAngle)+90 )
 		minuteImgRotated = minuteImg.rotate( (-minuteHandAngle)+90 )
 		
 		img.paste(faceImg, (0,0), faceImg)
-		img.paste(secondImgRotated, (0,0), secondImgRotated)
+		if INCLUDE_SECONDS_HAND:
+			img.paste(secondImgRotated, (0,0), secondImgRotated)
 		img.paste(hourImgRotated, (0,0), hourImgRotated)
 		img.paste(minuteImgRotated, (0,0), minuteImgRotated)
 		
@@ -84,7 +87,11 @@ class ClockGenerator(keras.utils.Sequence):
 		delta = 360
 		
 		input_images = np.zeros((1,IMG_SIZE[1],IMG_SIZE[0],IMG_SIZE[2]), dtype='float32')
-		output_values = np.zeros((1,12+60+60), dtype='float32')
+		
+		if INCLUDE_SECONDS_HAND:
+			output_values = np.zeros((1,12+60+60), dtype='float32')
+		else:
+			output_values = np.zeros((1,12+60), dtype='float32')
 		
 		combined_seconds = hours * 60 + minutes * 60 + seconds
 		
@@ -105,7 +112,8 @@ class ClockGenerator(keras.utils.Sequence):
 		
 		output_values[0][hour_idx] = 1
 		output_values[0][minute_idx+12] = 1
-		output_values[0][second_idx+12+60] = 1
+		if INCLUDE_SECONDS_HAND:
+			output_values[0][second_idx+12+60] = 1
 		
 		return input_images,output_values
 		
@@ -117,7 +125,11 @@ class ClockGenerator(keras.utils.Sequence):
 		delta = 360 / num
 		
 		input_images = np.zeros((num,IMG_SIZE[1],IMG_SIZE[0],IMG_SIZE[2]), dtype='float32')
-		output_values = np.zeros((num,12+60+60), dtype='float32')
+		
+		if INCLUDE_SECONDS_HAND:
+			output_values = np.zeros((num,12+60+60), dtype='float32')
+		else:
+			output_values = np.zeros((num,12+60), dtype='float32')
 		
 		for idx in range(0,num):
 			
@@ -140,17 +152,23 @@ class ClockGenerator(keras.utils.Sequence):
 			
 			output_values[idx][hour_idx] = 1
 			output_values[idx][minute_idx+12] = 1
-			output_values[idx][second_idx+12+60] = 1
+			if INCLUDE_SECONDS_HAND:
+				output_values[idx][second_idx+12+60] = 1
 				
 		return input_images,output_values
 	
 	def convertOutputToTime(self,output):
 		hour = np.argmax(output[0:12])
 		minute = np.argmax(output[12:72])
-		second = np.argmax(output[72:132])
+		if INCLUDE_SECONDS_HAND:
+			second = np.argmax(output[72:132])
+			
 		if hour == 0:
 			hour = 12
-		return "%02d.%02d.%02d" % (hour,minute,second)		
+		
+		if INCLUDE_SECONDS_HAND:
+			return "%02d.%02d.%02d" % (hour,minute,second)
+		return "%02d.%02d" % (hour,minute)		
 	
 	def saveImageToFile(self,img,filepath):
 		img = img.reshape(IMG_SIZE[1],IMG_SIZE[0]) * 255.0

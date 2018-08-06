@@ -9,6 +9,7 @@ from keras import optimizers
 from keras.optimizers import SGD
 import os
 
+INCLUDE_SECONDS_HAND = False
 MODEL_H5_NAME = "clock.h5"
 MODEL_COREML_NAME = "clock.mlmodel"
 IMG_SIZE = [128,128,1]
@@ -37,7 +38,10 @@ def createModel(loadFromDisk):
 	model.add(Activation('relu'))
 	model.add(Dense(128))
 	model.add(Activation('relu'))
-	model.add(Dense(12+60+60))
+	if INCLUDE_SECONDS_HAND:
+		model.add(Dense(12+60+60))
+	else:
+		model.add(Dense(12+60))
 	model.add(Activation('sigmoid'))
 
 	model.compile(loss='binary_crossentropy', optimizer="rmsprop", metrics=['accuracy'])
