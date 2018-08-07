@@ -40,6 +40,14 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
                 // find the highest confidence hour
                 var bestHour = 0
                 var bestHourConfidence:Float = 0.0
+                var notclockConfidence:Float = 0.0
+                
+                for result in results {
+                    if result.identifier == "notclock" {
+                        notclockConfidence = result.confidence
+                        break
+                    }
+                }
                 
                 for i in 0...12 {
                     let identifier = "hour\(i)"
@@ -75,20 +83,17 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
                     bestHour = 12
                 }
                 
-                var clockString = String(format: "%02d:%02d", bestHour, bestMinute)
-                
-                if bestHourConfidence < 0.1 || bestMinuteConfidence < 0.1 {
-                    clockString = "--:--"
-                } else {
-                    print("\(clockString) ---- \(bestHourConfidence)  \(bestMinuteConfidence)")
+                if (notclockConfidence + notclockConfidence > displayedClickConfidence) {
+                    displayedClickConfidence = notclockConfidence
+                    DispatchQueue.main.async {
+                        self.clockLabel.label.text = "no clock"
+                    }
                 }
                 
-                if bestHourConfidence + bestMinuteConfidence > displayedClickConfidence {
-                    
+                if (bestHourConfidence + bestMinuteConfidence > displayedClickConfidence) {
                     displayedClickConfidence = bestHourConfidence + bestMinuteConfidence
-                    
                     DispatchQueue.main.async {
-                        self.clockLabel.label.text = clockString
+                        self.clockLabel.label.text = String(format: "%02d:%02d", bestHour, bestMinute)
                     }
                 }
                 
@@ -106,7 +111,7 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
     
     func loadModel() {
         do {
-            let modelURL = URL(fileURLWithPath: String(bundlePath:"bundle://Assets/main/clock.mlmodel"))
+            let modelURL = URL(fileURLWithPath: String(bundlePath:"bundle://Assets/main/time.mlmodel"))
             let compiledUrl = try MLModel.compileModel(at: modelURL)
             let model = try MLModel(contentsOf: compiledUrl)
             self.model = try? VNCoreMLModel(for: model)

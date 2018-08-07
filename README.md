@@ -5,8 +5,7 @@ An experiment to train a model to read the current time off of analog clocks.
 ![demo](https://github.com/KittyMac/MLClock/blob/master/meta/demo.jpg?raw=true)
 
 
-How it works
-------------
+## Time Detection
 
 ### model.py
 
@@ -27,9 +26,13 @@ if you run data.py directly it will generate some sample images to /tmp for manu
 for training the model, simply run `python train.py learn` and 1m iterations of randomly generate clock faces will be trained.  once you have some weights trained, you can run `python train.py convert` to export a new coreml model, `python train.py test` to run an comprehensive accuracy test, or `python train.py test2 4:15:25` with a time to test against a specific time.
 
 
+## Clock Localization
+
+train a very small, very fast model which can detect the clock face used in training the time detection model.  utilize a genetic algorithm to find the closest quadrilateral crop of the image to get the clock face
+
+
 TODO
 ------------
 
 1. experiment to find the best model architecture
-2. add object localization to the app so we can smartly crop the clock face
-3. add more image augmentation to training to allow more off angled shots of the face
+2. add more image augmentation to training to allow more off angled shots of the face
