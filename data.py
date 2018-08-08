@@ -88,13 +88,14 @@ class ClockGenerator(keras.utils.Sequence):
 		img.paste(hourImgRotated, offset, hourImgRotated)
 		img.paste(minuteImgRotated, offset, minuteImgRotated)
 		
-		
+		'''
 		filter = Image.new('RGBA', (self.imgSize[1], self.imgSize[0]), (int(127 + random.random() * 128),
 			int(127 + random.random() * 128),
 			int(127 + random.random() * 128),
 			int(127 + random.random() * 128)))
 		
 		img.paste(filter, (0,0), filter)
+		'''
 		
 		return img.convert('L')
 		
