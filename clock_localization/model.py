@@ -9,6 +9,7 @@ from keras import optimizers
 from keras.optimizers import SGD
 import os
 
+INCLUDE_SECONDS_HAND = False
 MODEL_H5_NAME = "clock.h5"
 MODEL_COREML_NAME = "../ios/MLclock/Assets/main/clock.mlmodel"
 IMG_SIZE = [8,8,1]
@@ -27,9 +28,9 @@ def createModel(loadFromDisk):
 
 	model.add(Flatten())
 	model.add(Dense(1))
-	model.add(Activation('softmax'))
+	model.add(Activation('sigmoid'))
 
-	model.compile(loss='categorical_crossentropy', optimizer="rmsprop", metrics=['accuracy'])
+	model.compile(loss='binary_crossentropy', optimizer="rmsprop", metrics=['accuracy'])
 
 	print(model.summary())
 	

@@ -1,5 +1,8 @@
 from __future__ import division
 
+import sys
+sys.path.insert(0, '../')
+
 from keras import backend as keras
 
 from keras.preprocessing import sequence
@@ -35,6 +38,8 @@ class SignalHandler:
 
 def Learn():
 	
+	random.seed(90021)
+	
 	# 1. create the model
 	print("creating the model")
 	_model = model.createModel(True)
@@ -42,9 +47,9 @@ def Learn():
 	# 2. train the model
 	print("initializing the generator")
 	batch_size = 1
-	generator = data.ClockGenerator()
+	generator = data.ClockGenerator(model.IMG_SIZE,model.INCLUDE_SECONDS_HAND,0.5)
 	
-	iterations = 250000 * 4
+	iterations = 100000
 		
 	print("beginning training")
 	handler = SignalHandler()
@@ -54,7 +59,8 @@ def Learn():
 		if handler.stop_processing:
 			break
 		
-		n = int(random.random() * 43200)
+		#n = int(random.random() * 43200)
+		n = 100000
 		print(i)
 		Train(generator,_model,n)
 		i += n
@@ -83,6 +89,7 @@ def Convert():
 def Train(generator,_model,n):
 	
 	train,label = generator.generateClockFaces(n)
+	label = FixLabels(label)
 	
 	batch_size = 32
 	if n < batch_size:
@@ -93,38 +100,26 @@ def Train(generator,_model,n):
 def Test():
 	_model = model.createModel(True)
 	
-	generator = data.ClockGenerator()
+	generator = data.ClockGenerator(model.IMG_SIZE,model.INCLUDE_SECONDS_HAND,0.5)
 	
 	train,label = generator.generateClockFaces(12*60*60)
+	label = FixLabels(label)
 	
 	results = _model.predict(train)
 	
 	
 	correct = 0
 	for i in range(0,len(label)):
-		expected = generator.convertOutputToTime(label[i])
-		predicted = generator.convertOutputToTime(results[i])
-		if expected == predicted:
+		if label[i][0] == results[i][0]:
 			correct += 1
-		print("expected", expected, "predicted", predicted, "correct", expected == predicted)
 	print("correct", correct, "total", len(label))
 	
 
-def Test2(timeAsString):
-	parsedTime = parser.parse(timeAsString)
-	
-	_model = model.createModel(True)
-	
-	generator = data.ClockGenerator()
-	
-	train,label = generator.generateClockFace(parsedTime.hour, parsedTime.minute)
-	results = _model.predict(train)
-	
+def FixLabels(label):
+	newLabels = np.zeros((len(label),1), dtype='float32')
 	for i in range(0,len(label)):
-		filepath = '/tmp/clock_%s.png' % (generator.convertOutputToTime(results[i]))
-		generator.saveImageToFile(train[i], filepath)
-		print("expected", generator.convertOutputToTime(label[i]), "predicted", generator.convertOutputToTime(results[i]), "file", filepath)
-	
+		np.copyto(newLabels,label[i][0:1])
+	return newLabels
 
 if __name__ == '__main__':
 	if sys.argv >= 2:

@@ -35,6 +35,7 @@ class ClockGenerator(keras.utils.Sequence):
 		minuteImg = Image.open('%s/minute.png' % META_PATH, 'r').convert('RGBA')
 		hourImg = Image.open('%s/hour.png' % META_PATH, 'r').convert('RGBA')
 		
+		self.randomImages = None
 		self.imgSize = imgSize
 		self.includeSecondsHands = includeSecondsHands
 		self.notClockFaceThreshold = notClockFaceThreshold
@@ -46,17 +47,25 @@ class ClockGenerator(keras.utils.Sequence):
 	def rotate(self, point, angle):
 	    px, py = point
 	    return math.cos(angle) * (px) - math.sin(angle) * (py), math.sin(angle) * (px) + math.cos(angle) * (py)
-		
+	
+	
+	def getRandomImage(self,idx):
+		if self.randomImages == None:
+			self.randomImages = []
+			for i in range(0,230):
+				self.randomImages.append(Image.open('%s/random/%d.png' % (META_PATH, i), 'r').convert('RGBA').resize((self.imgSize[1],self.imgSize[0]), Image.ANTIALIAS))
+		return self.randomImages[idx]
 	
 	def generateNotClockImage(self):
 		# TODO: make this better at generating random images
 		img = Image.new('RGBA', (self.imgSize[1], self.imgSize[0]), 
 			(int(30 + random.random() * 210),
 			int(30 + random.random() * 210),
+			int(30 + random.random() * 210),
 			int(30 + random.random() * 210)))
 		
-		randomImg1 = Image.open('%s/random/%d.png' % (META_PATH, int(random.random()*230)), 'r').convert('RGBA')
-		randomImg2 = Image.open('%s/random/%d.png' % (META_PATH, int(random.random()*230)), 'r').convert('RGBA')
+		randomImg1 = self.getRandomImage(int(random.random()*230))
+		randomImg2 = self.getRandomImage(int(random.random()*230))
 		
 		img.paste(randomImg1, (0,0), img)
 		img.paste(randomImg2, (0,0), img)
@@ -71,7 +80,7 @@ class ClockGenerator(keras.utils.Sequence):
 		rotation_offset = (random.random() * variance - variance / 2) * 2
 		
 		# simulated real clock with photo drawing
-		img = Image.new('RGBA', (self.imgSize[1], self.imgSize[0]), (int(127 + random.random() * 128),
+		img = Image.new('RGBA', (128, 128), (int(127 + random.random() * 128),
 			int(127 + random.random() * 128),
 			int(127 + random.random() * 128)))
 		
@@ -97,7 +106,7 @@ class ClockGenerator(keras.utils.Sequence):
 		img.paste(filter, (0,0), filter)
 		'''
 		
-		return img.convert('L')
+		return img.resize((self.imgSize[1],self.imgSize[0]), Image.ANTIALIAS).convert('L')
 		
 		# simulated clock with polygon drawing
 		'''
@@ -232,10 +241,10 @@ if __name__ == '__main__':
 	
 	META_PATH = "./meta"
 	
-	generator = ClockGenerator([128,128,1],True,0.5)
+	generator = ClockGenerator([8,8,1],True,0.5)
 	
-	input,output = generator.generateClockFaces(13)	
+	input,output = generator.generateClockFaces(100)	
 	for n in range(0,len(input)):
-		generator.saveImageToFile(input[n], '/tmp/clock_%s.png' % (generator.convertOutputToTime(output[n])))
+		generator.saveImageToFile(input[n], '/tmp/clock_%s_%d.png' % (generator.convertOutputToTime(output[n]), n))
 	
 	
