@@ -39,20 +39,13 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
         
         let bestCrop = objectLocalization.bestCrop()
         if bestCrop.size.width > 2.0 && bestCrop.size.height > 2.0 {
-            detectTimeFromImage(localImage, objectLocalization.workingImage(), bestCrop)
+            detectTimeFromImage(localImage, objectLocalization.workingImage(), objectLocalization.bestPerspective())
         }
     }
     
     
-    func detectTimeFromImage(_ fullImage:CIImage, _ localizedImage:CIImage, _ crop:CGRect) {
+    func detectTimeFromImage(_ fullImage:CIImage, _ localizedImage:CIImage, _ perspectiveImagesCoords:[String:Any]) {
         
-        let perspectiveImagesCoords = [
-            "inputTopLeft":CIVector(x:crop.minX, y: crop.maxY),
-            "inputTopRight":CIVector(x:crop.maxX, y: crop.maxY),
-            "inputBottomLeft":CIVector(x:crop.minX, y: crop.minY),
-            "inputBottomRight":CIVector(x:crop.maxX, y: crop.minY)
-        ]
-
         let extractedImage = fullImage.applyingFilter("CIPerspectiveCorrection", parameters: perspectiveImagesCoords)
         
         DispatchQueue.main.async {
@@ -151,7 +144,7 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
         mainBundlePath = "bundle://Assets/main/main.xml"
         loadView()
         
-        overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/full_clock3.jpg")))
+        overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/full_clock2.jpg")))
         
         captureHelper.delegate = self
         captureHelper.delegateWantsPerspectiveImages = true

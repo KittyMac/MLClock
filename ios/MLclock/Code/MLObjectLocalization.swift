@@ -8,6 +8,7 @@ class MLObjectLocalization {
     private let modelInputSize = 8
     private var currentImage:CIImage? = nil
     private var bestCropRect:CGRect = CGRect.zero
+    private var bestPerspectiveCoords:[String:Any] = [:]
     
     let ciContext = CIContext(options: [:])
     var calibrationImage:CIImage? = nil
@@ -35,20 +36,26 @@ class MLObjectLocalization {
         var x:CGFloat = 0.5
         var y:CGFloat = 0.5
         var radius:CGFloat = 0.1
+        var skewX:CGFloat = 0.5
+        var skewY:CGFloat = 0.5
         
         subscript(index:Int) -> CGFloat {
             get {
                 switch index {
                 case 0: return x
                 case 1: return y
-                default: return radius
+                case 2: return radius
+                case 3: return skewX
+                default: return skewY
                 }
             }
             set(v) {
                 switch index {
                 case 0: x = v
                 case 1: y = v
-                default: radius = v
+                case 2: radius = v
+                case 3: skewX = v
+                default: skewY = v
                 }
             }
         }
@@ -70,13 +77,27 @@ class MLObjectLocalization {
             if y >= 0.99999 - radius {
                 y = 0.99999 - radius
             }
+            if skewX < 0 {
+                skewX = 0
+            }
+            if skewX > 1 {
+                skewX = 1
+            }
+            if skewY < 0 {
+                skewY = 0
+            }
+            if skewY > 1 {
+                skewY = 1
+            }
         }
         
         func randomize(_ index:Int, _ prng:PRNG) {
             switch index {
             case 0: x = prng.getRandomNumberCGf()
             case 1: y = prng.getRandomNumberCGf()
-            default: radius = prng.getRandomNumberCGf() * 0.5
+            case 2: radius = prng.getRandomNumberCGf() * 0.5
+            case 3: skewX = prng.getRandomNumberCGf()
+            default: skewY = prng.getRandomNumberCGf()
             }
         }
         
@@ -84,6 +105,8 @@ class MLObjectLocalization {
             x = prng.getRandomNumberCGf()
             y = prng.getRandomNumberCGf()
             radius = prng.getRandomNumberCGf()
+            skewX = prng.getRandomNumberCGf()
+            skewY = prng.getRandomNumberCGf()
         }
         
         func randomizeSome(_ prng:PRNG) {
@@ -95,6 +118,12 @@ class MLObjectLocalization {
             }
             if prng.getRandomNumberf() < 0.5 {
                 radius = prng.getRandomNumberCGf()
+            }
+            if prng.getRandomNumberf() < 0.5 {
+                skewX = prng.getRandomNumberCGf()
+            }
+            if prng.getRandomNumberf() < 0.5 {
+                skewY = prng.getRandomNumberCGf()
             }
         }
         
@@ -108,17 +137,43 @@ class MLObjectLocalization {
             if prng.getRandomNumberf() < 0.5 {
                 radius += prng.getRandomNumberCGf() * 0.2 - 0.1
             }
-        }
-        
-        func normalizedCrop() -> CGRect {
-            return CGRect(x: x-radius, y: y-radius, width: radius*2.0, height: radius*2.0)
+            if prng.getRandomNumberf() < 0.5 {
+                skewX += prng.getRandomNumberCGf() * 0.2 - 0.1
+            }
+            if prng.getRandomNumberf() < 0.5 {
+                skewY += prng.getRandomNumberCGf() * 0.2 - 0.1
+            }
         }
         
         func fullsizeCrop(_ w:CGFloat, _ h:CGFloat) -> CGRect {
-            return CGRect(x: (x-radius) * h,
-                          y: (y-radius) * w,
+            return CGRect(x: (x-radius) * w,
+                          y: (y-radius) * h,
                           width: (radius*2.0) * h,
                           height: (radius*2.0) * h)
+        }
+        
+        public func lerp(_ min: CGFloat, _ max: CGFloat, _ t:CGFloat) -> CGFloat {
+            return min + (t * (max - min))
+        }
+        
+        func perspectiveCoords(_ w:CGFloat, _ h:CGFloat) -> [String:Any] {
+            let leftSkew = lerp(1.5, 0.5, skewX)
+            let rightSkew = lerp(0.5, 1.5, skewX)
+            let topSkew = lerp(1.5, 0.5, skewY)
+            let bottomSkew = lerp(0.5, 1.5, skewY)
+            
+            //let leftSkew:CGFloat = 1.0
+            //let rightSkew:CGFloat = 1.0
+            //let topSkew:CGFloat = 1.0
+            //let bottomSkew:CGFloat = 1.0
+            
+            let perspectiveImageCoords = [
+                "inputTopLeft":CIVector(x: (x-radius*topSkew) * h, y: (y+radius*leftSkew) * h),
+                "inputTopRight":CIVector(x: (x+radius*topSkew) * h, y: (y+radius*rightSkew) * h),
+                "inputBottomLeft":CIVector(x: (x-radius*bottomSkew) * h, y: (y-radius*leftSkew) * h),
+                "inputBottomRight":CIVector(x: (x+radius*bottomSkew) * h, y: (y-radius*rightSkew) * h)
+            ]
+            return perspectiveImageCoords
         }
     }
     
@@ -173,7 +228,7 @@ class MLObjectLocalization {
         
         let ga = GeneticAlgorithm<Organism>()
         
-        ga.numberOfOrganisms = 40
+        ga.numberOfOrganisms = 400
         
         ga.adjustPopulation = { (population, generationCount, prng) in
             for idx in 0..<population.count-1 {
@@ -223,18 +278,9 @@ class MLObjectLocalization {
                     return 0.0
                 }
                 
-                let perspectiveImagesCoords = [
-                    "inputTopLeft":CIVector(x:fullsizeCrop.minX, y: fullsizeCrop.maxY),
-                    "inputTopRight":CIVector(x:fullsizeCrop.maxX, y: fullsizeCrop.maxY),
-                    "inputBottomLeft":CIVector(x:fullsizeCrop.minX, y: fullsizeCrop.minY),
-                    "inputBottomRight":CIVector(x:fullsizeCrop.maxX, y: fullsizeCrop.minY)
-                    ]
-                
-                // 1. use coreimage to extract it
+                let perspectiveImagesCoords = organism.perspectiveCoords(w, h)
                 let extractedImage = self.currentImage!.applyingFilter("CIPerspectiveCorrection", parameters: perspectiveImagesCoords)
 
-                
-                
                 let targetSize:CGFloat = self.calibrationImage!.extent.width
                 let adjustedImage = extractedImage.transformed(by: CGAffineTransform(scaleX: targetSize / extractedImage.extent.width, y: targetSize / extractedImage.extent.height))
                 
@@ -294,8 +340,9 @@ class MLObjectLocalization {
             print("...\(score)")
             
             self.bestCropRect = organism.fullsizeCrop(w, h)
+            self.bestPerspectiveCoords = organism.perspectiveCoords(w, h)
 
-            print("score: \(score)\n    x:\(organism.x)\n    y:\(organism.y)\n    radius:\(organism.radius)")
+            print("score: \(score)\n    x:\(organism.x)\n    y:\(organism.y)\n    radius:\(organism.radius)\n    skewX:\(organism.skewX)\n    skewY:\(organism.skewY)")
             
             if score >= 1.0 {
                 return true
@@ -315,6 +362,10 @@ class MLObjectLocalization {
         return bestCropRect
     }
     
+    func bestPerspective() -> [String:Any] {
+        return bestPerspectiveCoords
+    }
+    
     func autolevels(_ width:Int, _ height:Int, _ bytes:inout [UInt8]) {
         var min:CGFloat = 255
         var max:CGFloat = 0
@@ -326,6 +377,10 @@ class MLObjectLocalization {
             if grey < min {
                 min = grey
             }
+        }
+        
+        if (max - min) <= 0 {
+            return
         }
         
         for i in 0..<(width*height) {
