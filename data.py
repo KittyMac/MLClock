@@ -35,6 +35,7 @@ class ClockGenerator(keras.utils.Sequence):
 		minuteImg = Image.open('%s/minute.png' % META_PATH, 'r').convert('RGBA')
 		hourImg = Image.open('%s/hour.png' % META_PATH, 'r').convert('RGBA')
 		
+		self.shakeVariance = 4
 		self.randomImages = None
 		self.imgSize = imgSize
 		self.includeSecondsHands = includeSecondsHands
@@ -74,10 +75,10 @@ class ClockGenerator(keras.utils.Sequence):
 		
 	def generateClockImage(self,hourHandAngle,minuteHandAngle,secondHandAngle):
 		
-		variance = 4
+		shakeVariance = 4
 		
-		offset = (int(random.random() * variance - variance / 2), int(random.random() * variance - variance / 2))
-		rotation_offset = (random.random() * variance - variance / 2) * 2
+		offset = (int(random.random() * shakeVariance - shakeVariance / 2), int(random.random() * shakeVariance - shakeVariance / 2))
+		rotation_offset = (random.random() * shakeVariance - shakeVariance / 2) * 2
 		
 		# simulated real clock with photo drawing
 		img = Image.new('RGBA', (128, 128), (int(127 + random.random() * 128),
@@ -241,7 +242,7 @@ if __name__ == '__main__':
 	
 	META_PATH = "./meta"
 	
-	generator = ClockGenerator([8,8,1],True,0.5)
+	generator = ClockGenerator([16,16,1],True,0.5)
 	
 	input,output = generator.generateClockFaces(100)	
 	for n in range(0,len(input)):

@@ -55,6 +55,7 @@ class CameraCaptureHelper: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
     var delegateWantsLockedCamera = false
     
     var delegateWantsHiSpeedCamera = false
+    var maxDesiredImageResolution:CGFloat = -1.0
     
     weak var delegate: CameraCaptureHelperDelegate?
     
@@ -106,9 +107,11 @@ class CameraCaptureHelper: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
                 
                 let area = resolution.width * resolution.height
                 //print("\(resolution.width) x \(resolution.height) aspect \(Float(resolution.width/resolution.height))")
-                if area > bestResolution {
-                    bestResolution = area
-                    bestFormat = format
+                if maxDesiredImageResolution < 0 || area < maxDesiredImageResolution {
+                    if area > bestResolution {
+                        bestResolution = area
+                        bestFormat = format
+                    }
                 }
             }
         }

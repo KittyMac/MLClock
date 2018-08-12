@@ -10,6 +10,7 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
     var overrideImage:CIImage? = nil
     var displayedClickConfidence:Float = 0.0
     
+    var objectLocalization = MLObjectLocalization()
     
     func playCameraImage(_ cameraCaptureHelper: CameraCaptureHelper, image: CIImage, originalImage: CIImage, frameNumber:Int, fps:Int) {
         
@@ -32,7 +33,34 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
                 ]
         }
         
-        let handler = VNImageRequestHandler(ciImage: localImage)
+        if frameNumber % 100 == 0 {
+            objectLocalization.updateImage(localImage)
+        }
+        
+        let bestCrop = objectLocalization.bestCrop()
+        if bestCrop.size.width > 2.0 && bestCrop.size.height > 2.0 {
+            detectTimeFromImage(localImage, bestCrop)
+        }
+    }
+    
+    
+    func detectTimeFromImage(_ image:CIImage, _ crop:CGRect) {
+        
+        let perspectiveImagesCoords = [
+            "inputTopLeft":CIVector(x:crop.minX, y: crop.maxY),
+            "inputTopRight":CIVector(x:crop.maxX, y: crop.maxY),
+            "inputBottomLeft":CIVector(x:crop.minX, y: crop.minY),
+            "inputBottomRight":CIVector(x:crop.maxX, y: crop.minY)
+        ]
+
+        let extractedImage = image.applyingFilter("CIPerspectiveCorrection", parameters: perspectiveImagesCoords)
+        
+        DispatchQueue.main.async {
+            self.cropPreview.imageView.image = UIImage(ciImage: extractedImage)
+            self.preview.imageView.image = UIImage(ciImage: image)
+        }
+        
+        let handler = VNImageRequestHandler(ciImage: extractedImage)
         do {
             let request = VNCoreMLRequest(model: model!)
             try handler.perform([request])
@@ -103,10 +131,6 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
         } catch {
             print(error)
         }
-        
-        DispatchQueue.main.async {
-            self.preview.imageView.image = UIImage(ciImage: localImage)
-        }
     }
     
     func loadModel() {
@@ -127,17 +151,22 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
         mainBundlePath = "bundle://Assets/main/main.xml"
         loadView()
         
-        //overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/cropped_clock3.jpg")))
+        //overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/full_clock2.jpg")))
         
         captureHelper.delegate = self
-        captureHelper.scaledImagesSize = CGSize(width: 128, height: 128)
-        //captureHelper.delegateWantsScaledImages = true
         captureHelper.delegateWantsPerspectiveImages = true
         captureHelper.delegateWantsPlayImages = true
+        captureHelper.maxDesiredImageResolution = 1280 * 720
         
         loadModel()
         
         UIApplication.shared.isIdleTimerDisabled = true
+        
+        objectLocalization.begin()
+    }
+    
+    deinit {
+        objectLocalization.end()
     }
     
     fileprivate var clockLabel: Label {
@@ -146,6 +175,10 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
     
     fileprivate var preview: ImageView {
         return mainXmlView!.elementForId("preview")!.asImageView!
+    }
+    
+    fileprivate var cropPreview: ImageView {
+        return mainXmlView!.elementForId("cropPreview")!.asImageView!
     }
     
     fileprivate var scope: AnyObject? {

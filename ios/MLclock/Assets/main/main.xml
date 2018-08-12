@@ -10,6 +10,11 @@
     <Constraint firstItem="preview" firstAttribute="height" secondItem="root" secondAttribute="width" multiplier="1.0"/>
     <Constraint firstItem="preview" firstAttribute="top" secondItem="root" secondAttribute="top" constant="0" />
     
+    <ImageView id="cropPreview" contentMode="scaleAspectFit" backgroundColor="#000000FF" shadowRadius="4" shadowOffset="0,3" shadowColor="#000000FF" shadowOpacity="0.5" />
+    <Constraint firstItem="cropPreview" firstAttribute="width" secondItem="root" secondAttribute="width" multiplier="0.2"/>
+    <Constraint firstItem="cropPreview" firstAttribute="height" secondItem="root" secondAttribute="width" multiplier="0.2"/>
+    <Constraint firstItem="cropPreview" firstAttribute="top" secondItem="root" secondAttribute="top" constant="0" />
+    
     <View id="labelContainer" backgroundColor="#000000FF">
         <Label id="clockLabel" text="00:00" styleId="LabelClock" numberOfLines="1" adjustsFontSizeToFitWidth="true" />
         <Constraint firstItem="clockLabel" ruleSet="fillSuperview" ruleSetInfo="60,60,60,60" />

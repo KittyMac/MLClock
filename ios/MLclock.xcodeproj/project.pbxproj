@@ -20,6 +20,10 @@
 		468300DE2118ADB400C4705A /* UIControl+Closures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 468300D92118ADB400C4705A /* UIControl+Closures.swift */; };
 		468300DF2118ADB400C4705A /* UIView+FillSuperview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 468300DA2118ADB400C4705A /* UIView+FillSuperview.swift */; };
 		468300E12118B43C00C4705A /* CameraCaptureHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 468300E02118B43C00C4705A /* CameraCaptureHelper.swift */; };
+		46D5392B211DFCD40002A7EB /* MLObjectLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46D5392A211DFCD40002A7EB /* MLObjectLocalization.swift */; };
+		46D53930211DFD470002A7EB /* ComboSort.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46D5392D211DFD470002A7EB /* ComboSort.swift */; };
+		46D53931211DFD470002A7EB /* GeneticAlgorithm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46D5392E211DFD470002A7EB /* GeneticAlgorithm.swift */; };
+		46D53932211DFD470002A7EB /* Xoroshiro128.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46D5392F211DFD470002A7EB /* Xoroshiro128.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -51,6 +55,10 @@
 		468300D92118ADB400C4705A /* UIControl+Closures.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIControl+Closures.swift"; sourceTree = "<group>"; };
 		468300DA2118ADB400C4705A /* UIView+FillSuperview.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIView+FillSuperview.swift"; sourceTree = "<group>"; };
 		468300E02118B43C00C4705A /* CameraCaptureHelper.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CameraCaptureHelper.swift; sourceTree = "<group>"; };
+		46D5392A211DFCD40002A7EB /* MLObjectLocalization.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MLObjectLocalization.swift; sourceTree = "<group>"; };
+		46D5392D211DFD470002A7EB /* ComboSort.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ComboSort.swift; sourceTree = "<group>"; };
+		46D5392E211DFD470002A7EB /* GeneticAlgorithm.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GeneticAlgorithm.swift; sourceTree = "<group>"; };
+		46D5392F211DFD470002A7EB /* Xoroshiro128.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Xoroshiro128.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -101,6 +109,8 @@
 			children = (
 				468300E02118B43C00C4705A /* CameraCaptureHelper.swift */,
 				468300D62118ADB400C4705A /* MainController.swift */,
+				46D5392A211DFCD40002A7EB /* MLObjectLocalization.swift */,
+				46D5392C211DFD470002A7EB /* GenAlg */,
 				468300D72118ADB400C4705A /* Object+Rocco.swift */,
 				468300D82118ADB400C4705A /* String+ASCII.swift */,
 				468300D92118ADB400C4705A /* UIControl+Closures.swift */,
@@ -108,6 +118,16 @@
 			);
 			name = Code;
 			path = MLclock/Code;
+			sourceTree = "<group>";
+		};
+		46D5392C211DFD470002A7EB /* GenAlg */ = {
+			isa = PBXGroup;
+			children = (
+				46D5392D211DFD470002A7EB /* ComboSort.swift */,
+				46D5392E211DFD470002A7EB /* GeneticAlgorithm.swift */,
+				46D5392F211DFD470002A7EB /* Xoroshiro128.swift */,
+			);
+			path = GenAlg;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -187,8 +207,12 @@
 				468300DF2118ADB400C4705A /* UIView+FillSuperview.swift in Sources */,
 				468300DB2118ADB400C4705A /* MainController.swift in Sources */,
 				468300DE2118ADB400C4705A /* UIControl+Closures.swift in Sources */,
+				46D53930211DFD470002A7EB /* ComboSort.swift in Sources */,
+				46D53932211DFD470002A7EB /* Xoroshiro128.swift in Sources */,
+				46D53931211DFD470002A7EB /* GeneticAlgorithm.swift in Sources */,
 				464B62222118A9BD001D87F1 /* AppDelegate.swift in Sources */,
 				468300DD2118ADB400C4705A /* String+ASCII.swift in Sources */,
+				46D5392B211DFCD40002A7EB /* MLObjectLocalization.swift in Sources */,
 				468300E12118B43C00C4705A /* CameraCaptureHelper.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -334,6 +358,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = A3LA43YQN5;
 				INFOPLIST_FILE = MLclock/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
