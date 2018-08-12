@@ -17,6 +17,8 @@ class MLObjectLocalization {
     var model:VNCoreMLModel? = nil
     var shouldContinueRunningGA = true
     
+    var calibrationRGBBytes = [UInt8](repeating: 0, count: 1)
+    
     class Organism {
         // Note: our organism contains the data we need to calcuate the
         // four points of our crop. It is ideal for us to use the least
@@ -53,8 +55,8 @@ class MLObjectLocalization {
         
         func validate() {
             // crop must be completely contained.
-            if radius < 0.01 {
-                radius = 0.01
+            if radius < 0.005 {
+                radius = 0.005
             }
             if x < radius {
                x = radius
@@ -120,26 +122,21 @@ class MLObjectLocalization {
         }
     }
     
+    func workingImage() -> CIImage{
+        return currentImage!
+    }
+    
     func updateImage(_ newImage:CIImage) {
         let cgimg = self.ciContext.createCGImage(newImage, from: newImage.extent)
+        //let imgData = UIImagePNGRepresentation(UIImage(cgImage: cgimg!))
         let imgData = UIImageJPEGRepresentation(UIImage(cgImage: cgimg!), 1.0)
         currentImage = CIImage(data: imgData!)
     }
     
-    func runGA() {
-        
-        guard let model = model else {
-            return
-        }
-        
-        if currentImage == nil {
-            return
-        }
-        
+    func loadCalibrationImage() {
         // Load our calibration image and convert to RGB bytes
         calibrationImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/calibration.png")))
-        let cgImage = self.ciContext.createCGImage(calibrationImage!, from: calibrationImage!.extent)
-        var calibrationRGBBytes = [UInt8](repeating: 0, count: 1)
+        let cgImage = ciContext.createCGImage(calibrationImage!, from: calibrationImage!.extent)
         
         if cgImage != nil {
             let width = cgImage!.width
@@ -157,13 +154,33 @@ class MLObjectLocalization {
             
             autolevels(width, height, &calibrationRGBBytes)
         }
+    }
+    
+    func runGA() {
+        
+        guard let model = model else {
+            return
+        }
+        
+        if currentImage == nil {
+            return
+        }
+        
+        
         
         let w = currentImage!.extent.width
         let h = currentImage!.extent.height
         
         let ga = GeneticAlgorithm<Organism>()
         
-        ga.numberOfOrganisms = 200
+        ga.numberOfOrganisms = 40
+        
+        ga.adjustPopulation = { (population, generationCount, prng) in
+            for idx in 0..<population.count-1 {
+                population[idx]!.randomizeAll(prng)
+                population[idx]!.validate()
+            }
+        }
         
         ga.generateOrganism = { (idx, prng) in
             let newChild = Organism ()
@@ -173,12 +190,6 @@ class MLObjectLocalization {
         }
         
         ga.breedOrganisms = { (organismA, organismB, child, prng) in
-            if organismB == nil {
-                // create a new random member of the population
-                child.randomizeAll(prng)
-                return
-            }
-            
             if (organismA === organismB) {
                 for i in 0..<child.contentLength {
                     child [i] = organismA [i]
@@ -194,7 +205,7 @@ class MLObjectLocalization {
                     if (t < 0.5) {
                         child [i] = organismA [i];
                     } else {
-                        child [i] = organismB! [i];
+                        child [i] = organismB [i];
                     }
                 }
                 
@@ -245,13 +256,11 @@ class MLObjectLocalization {
                 
                 
                 // run over both images, and determine how different they are...
-                if calibrationRGBBytes.count == rgbBytes.count {
+                if self.calibrationRGBBytes.count == rgbBytes.count {
                     var totalDiff:Double = 0.0
-                    
                     self.autolevels(width, height, &rgbBytes)
-                    
                     for i in 0..<(width*height) {
-                        totalDiff = totalDiff + abs(Double(calibrationRGBBytes[i]) - Double(rgbBytes[i]))
+                        totalDiff = totalDiff + abs(Double(self.calibrationRGBBytes[i]) - Double(rgbBytes[i]))
                     }
                     return 1.0 - Float(totalDiff / Double(width*height*255))
                 }
@@ -337,6 +346,7 @@ class MLObjectLocalization {
     
     func begin() {
         loadModel()
+        loadCalibrationImage()
         
         shouldContinueRunningGA = true
         DispatchQueue.global(qos: .userInteractive).async {

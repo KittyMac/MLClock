@@ -33,18 +33,18 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
                 ]
         }
         
-        if frameNumber % 100 == 0 {
+        if frameNumber % 2000 == 0 {
             objectLocalization.updateImage(localImage)
         }
         
         let bestCrop = objectLocalization.bestCrop()
         if bestCrop.size.width > 2.0 && bestCrop.size.height > 2.0 {
-            detectTimeFromImage(localImage, bestCrop)
+            detectTimeFromImage(localImage, objectLocalization.workingImage(), bestCrop)
         }
     }
     
     
-    func detectTimeFromImage(_ image:CIImage, _ crop:CGRect) {
+    func detectTimeFromImage(_ fullImage:CIImage, _ localizedImage:CIImage, _ crop:CGRect) {
         
         let perspectiveImagesCoords = [
             "inputTopLeft":CIVector(x:crop.minX, y: crop.maxY),
@@ -53,11 +53,11 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
             "inputBottomRight":CIVector(x:crop.maxX, y: crop.minY)
         ]
 
-        let extractedImage = image.applyingFilter("CIPerspectiveCorrection", parameters: perspectiveImagesCoords)
+        let extractedImage = fullImage.applyingFilter("CIPerspectiveCorrection", parameters: perspectiveImagesCoords)
         
         DispatchQueue.main.async {
             self.cropPreview.imageView.image = UIImage(ciImage: extractedImage)
-            self.preview.imageView.image = UIImage(ciImage: image)
+            self.preview.imageView.image = UIImage(ciImage: fullImage)
         }
         
         let handler = VNImageRequestHandler(ciImage: extractedImage)
@@ -151,7 +151,7 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
         mainBundlePath = "bundle://Assets/main/main.xml"
         loadView()
         
-        //overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/full_clock2.jpg")))
+        overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/full_clock3.jpg")))
         
         captureHelper.delegate = self
         captureHelper.delegateWantsPerspectiveImages = true

@@ -107,7 +107,7 @@ class CameraCaptureHelper: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
                 
                 let area = resolution.width * resolution.height
                 //print("\(resolution.width) x \(resolution.height) aspect \(Float(resolution.width/resolution.height))")
-                if maxDesiredImageResolution < 0 || area < maxDesiredImageResolution {
+                if maxDesiredImageResolution < 0 || area <= maxDesiredImageResolution {
                     if area > bestResolution {
                         bestResolution = area
                         bestFormat = format

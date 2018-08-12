@@ -16,14 +16,19 @@ import Foundation
 
 class GeneticAlgorithm<T> {
     
+    typealias AdjustPopulationmFunc<T> = ((inout [T?], Int, PRNG) -> Void)
     typealias GenerateOrganismFunc<T> = ((Int, PRNG) -> T)
-    typealias BreedOrganismsFunc<T> = ((T, T?, T, PRNG) -> Void)
+    typealias BreedOrganismsFunc<T> = ((T, T, T, PRNG) -> Void)
     typealias ScoreOrganismFunc<T> = ((T, Int, PRNG) -> Float)
     typealias ChosenOrganismFunc<T> = ((T, Float, Int, Int, PRNG) -> Bool)
     
     
     // population size: tweak this to your needs
     public var numberOfOrganisms = 20
+    
+    // an optional method that gives the callee direct access to the entire population array prior to the entire poopulation array being rescored and resorted.
+    // useful if the callee wants to populate the array with specific elements
+    public var adjustPopulation : AdjustPopulationmFunc<T>?
     
     // generate organisms: delegate received the population index of the new organism, and a uint suitable for seeding a RNG. delegete should return a newly allocated organism with assigned chromosomes.
     public var generateOrganism : GenerateOrganismFunc<T>!
@@ -56,6 +61,7 @@ class GeneticAlgorithm<T> {
     
     // main workhorse method: build a population, select and breed parents over multiple generations, insert children into the new population if they are good enough
     private func PerformGenetics (_ millisecondsToProcess:Int64,
+                                  _ adjustPopulation:AdjustPopulationmFunc<T>?,
                                   _ generateOrganism:GenerateOrganismFunc<T>,
                                   _ breedOrganisms:BreedOrganismsFunc<T>,
                                   _ scoreOrganism:ScoreOrganismFunc<T>,
@@ -83,6 +89,11 @@ class GeneticAlgorithm<T> {
         // Call the delegate to generate all of the organisms in the population array; score them as well
         for i in 0..<numberOfOrganisms {
             allOrganisms [i] = generateOrganism (i, prng)
+        }
+        if adjustPopulation != nil {
+            adjustPopulation!(&allOrganisms, 0, prng)
+        }
+        for i in 0..<numberOfOrganisms {
             allOrganismScores [i] = scoreOrganism (allOrganisms [i]!, sharedOrganismIdx, prng)
         }
         
@@ -127,14 +138,6 @@ class GeneticAlgorithm<T> {
             
             while (finished == false &&
                 (millisecondsToProcess < 0 || ((DispatchTime.now().uptimeNanoseconds - watchStart.uptimeNanoseconds) / 1000000) < millisecondsToProcess)) {
-                
-                // to handle the case of shifting targets, we should periodically rescore all of the organisms
-                //if numberOfGenerations % 250 == 0 {
-                //    for i in 0..<numberOfOrganisms {
-                //        allOrganismScores [i] = scoreOrganism (allOrganisms [i]!, sharedOrganismIdx, prng)
-                //    }
-                //    comboSort(&allOrganismScores, &allOrganisms)
-                //}
                 
                 // optimization: we only call chosen organsism below when the new best organism changes
                 didFindNewBestOrganism = false
@@ -254,14 +257,17 @@ class GeneticAlgorithm<T> {
                     }
                     break;
                 }
-                    
+                 
                 // every little while, introduce new half of the population
                 if numberOfGenerations % (maxBreedingPerGeneration * 500) == 0 {
                     // Call the delegate to generate all of the organisms in the population array; score them as well
-                    for i in 0..<localNumberOfOrganismsMinusOne {
-                        breedOrganisms (allOrganisms[i]!, nil, allOrganisms[i]!, prng)
-                        allOrganismScores [i] = scoreOrganism (allOrganisms [i]!, sharedOrganismIdx, prng)
+                    if adjustPopulation != nil {
+                        adjustPopulation!(&allOrganisms, numberOfGenerations, prng)
+                        for i in 0..<localNumberOfOrganismsMinusOne {
+                            allOrganismScores [i] = scoreOrganism (allOrganisms [i]!, sharedOrganismIdx, prng)
+                        }
                     }
+
                     allOrganismScores [localNumberOfOrganismsMinusOne] = scoreOrganism (allOrganisms [localNumberOfOrganismsMinusOne]!, sharedOrganismIdx, prng)
                     comboSort(&allOrganismScores, &allOrganisms)
                     didFindNewBestOrganism = true
@@ -284,7 +290,7 @@ class GeneticAlgorithm<T> {
         let watchStart = DispatchTime.now()
         var masterGenerations = 0;
 
-        let bestOrganism = PerformGenetics (millisecondsToProcess, generateOrganism, breedOrganisms, scoreOrganism, {(organism, score, generation, sharedOrganismIdx, prng) in
+        let bestOrganism = PerformGenetics (millisecondsToProcess, adjustPopulation, generateOrganism, breedOrganisms, scoreOrganism, {(organism, score, generation, sharedOrganismIdx, prng) in
             masterGenerations = generation;
             return chosenOrganism(organism, score, generation, sharedOrganismIdx, prng)
         })
@@ -346,7 +352,7 @@ class GeneticAlgorithm<T> {
                 var maxGenerations = 0
                 var bestOrganism : T?
                 
-                bestOrganism = self.PerformGenetics (millisecondsToProcess, self.generateOrganism, self.breedOrganisms, self.scoreOrganism, {(newOrganism, score, generation, sharedOrganismIdx, prng) in
+                bestOrganism = self.PerformGenetics (millisecondsToProcess, self.adjustPopulation, self.generateOrganism, self.breedOrganisms, self.scoreOrganism, {(newOrganism, score, generation, sharedOrganismIdx, prng) in
                     if (score > bestOrganismScore) {
                         bestOrganism = newOrganism
                         bestOrganismScore = score
