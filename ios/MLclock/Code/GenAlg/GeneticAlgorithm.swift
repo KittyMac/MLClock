@@ -262,6 +262,7 @@ class GeneticAlgorithm<T> {
                         breedOrganisms (allOrganisms[i]!, nil, allOrganisms[i]!, prng)
                         allOrganismScores [i] = scoreOrganism (allOrganisms [i]!, sharedOrganismIdx, prng)
                     }
+                    allOrganismScores [localNumberOfOrganismsMinusOne] = scoreOrganism (allOrganisms [localNumberOfOrganismsMinusOne]!, sharedOrganismIdx, prng)
                     comboSort(&allOrganismScores, &allOrganisms)
                     didFindNewBestOrganism = true
                 }
