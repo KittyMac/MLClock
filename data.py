@@ -74,11 +74,12 @@ class ClockGenerator(keras.utils.Sequence):
 		return img.convert('L')
 		
 	def generateClockImage(self,hourHandAngle,minuteHandAngle,secondHandAngle):
+				
+		offset = (int(random.random() * self.shakeVariance - self.shakeVariance / 2), int(random.random() * self.shakeVariance - self.shakeVariance / 2))
+		rotation_offset = ((random.random() * self.shakeVariance - self.shakeVariance / 2) * 2) / 4
 		
-		shakeVariance = 4
-		
-		offset = (int(random.random() * shakeVariance - shakeVariance / 2), int(random.random() * shakeVariance - shakeVariance / 2))
-		rotation_offset = (random.random() * shakeVariance - shakeVariance / 2) * 2
+		scaleVariance = int(128 + ((random.random() - 0.5) * self.shakeVariance * 2.0))
+		scaleVariance = (scaleVariance,scaleVariance)
 		
 		# simulated real clock with photo drawing
 		img = Image.new('RGBA', (128, 128), (int(127 + random.random() * 128),
@@ -86,11 +87,11 @@ class ClockGenerator(keras.utils.Sequence):
 			int(127 + random.random() * 128)))
 		
 		if self.includeSecondsHands:
-			secondImgRotated = secondImg.rotate( (-secondHandAngle)+90+rotation_offset )
-		hourImgRotated = hourImg.rotate( (-hourHandAngle)+90+rotation_offset )
-		minuteImgRotated = minuteImg.rotate( (-minuteHandAngle)+90+rotation_offset )
+			secondImgRotated = secondImg.resize(scaleVariance).rotate( (-secondHandAngle)+90+rotation_offset )
+		hourImgRotated = hourImg.resize(scaleVariance).rotate( (-hourHandAngle)+90+rotation_offset )
+		minuteImgRotated = minuteImg.resize(scaleVariance).rotate( (-minuteHandAngle)+90+rotation_offset )
 		
-		faceImgRotated = faceImg.rotate( rotation_offset )
+		faceImgRotated = faceImg.resize(scaleVariance).rotate( rotation_offset )
 		
 		img.paste(faceImgRotated, offset, faceImgRotated)
 		if self.includeSecondsHands:
@@ -98,19 +99,12 @@ class ClockGenerator(keras.utils.Sequence):
 		img.paste(hourImgRotated, offset, hourImgRotated)
 		img.paste(minuteImgRotated, offset, minuteImgRotated)
 		
-		'''
-		filter = Image.new('RGBA', (self.imgSize[1], self.imgSize[0]), (int(127 + random.random() * 128),
-			int(127 + random.random() * 128),
-			int(127 + random.random() * 128),
-			int(127 + random.random() * 128)))
-		
-		img.paste(filter, (0,0), filter)
-		'''
-		
 		return img.resize((self.imgSize[1],self.imgSize[0]), Image.ANTIALIAS).convert('L')
 		
-		# simulated clock with polygon drawing
+		
+		
 		'''
+		# simulated clock with polygon drawing
 		img = Image.new('RGB', (self.imgSize[1], self.imgSize[0]), (255, 255, 255, 255))
 		
 		draw = ImageDraw.Draw(img)
@@ -242,9 +236,10 @@ if __name__ == '__main__':
 	
 	META_PATH = "./meta"
 	
-	generator = ClockGenerator([16,16,1],True,0.5)
+	generator = ClockGenerator([96,96,1],True,0.0)
+	generator.shakeVariance = 0
 	
-	input,output = generator.generateClockFaces(100)	
+	input,output = generator.generateClockFaces(24)	
 	for n in range(0,len(input)):
 		generator.saveImageToFile(input[n], '/tmp/clock_%s_%d.png' % (generator.convertOutputToTime(output[n]), n))
 	

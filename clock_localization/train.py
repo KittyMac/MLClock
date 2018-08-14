@@ -37,9 +37,7 @@ class SignalHandler:
 ######
 
 def Learn():
-	
-	random.seed(90021)
-	
+		
 	# 1. create the model
 	print("creating the model")
 	_model = model.createModel(True)
@@ -50,7 +48,7 @@ def Learn():
 	generator = data.ClockGenerator(model.IMG_SIZE,model.INCLUDE_SECONDS_HAND,0.5)
 	generator.shakeVariance = 0
 	
-	iterations = 50000
+	iterations = 250000
 		
 	print("beginning training")
 	handler = SignalHandler()

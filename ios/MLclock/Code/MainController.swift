@@ -9,6 +9,7 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
     var model:VNCoreMLModel? = nil
     var overrideImage:CIImage? = nil
     var displayedClickConfidence:Float = 0.0
+    let ciContext = CIContext(options: [:])
     
     var objectLocalization = MLObjectLocalization()
     
@@ -144,7 +145,7 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
         mainBundlePath = "bundle://Assets/main/main.xml"
         loadView()
         
-        overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/full_clock2.jpg")))
+        overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/full_clock4.jpg")))
         
         captureHelper.delegate = self
         captureHelper.delegateWantsPerspectiveImages = true

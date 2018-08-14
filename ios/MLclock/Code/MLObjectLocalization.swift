@@ -13,6 +13,9 @@ class MLObjectLocalization {
     let ciContext = CIContext(options: [:])
     var calibrationImage:CIImage? = nil
     
+    var watchStart = DispatchTime.now()
+    var lastGenerationCount = 0
+    
     private var handler = VNSequenceRequestHandler()
     
     var model:VNCoreMLModel? = nil
@@ -157,15 +160,15 @@ class MLObjectLocalization {
         }
         
         func perspectiveCoords(_ w:CGFloat, _ h:CGFloat) -> [String:Any] {
-            let leftSkew = lerp(1.5, 0.5, skewX)
-            let rightSkew = lerp(0.5, 1.5, skewX)
-            let topSkew = lerp(1.5, 0.5, skewY)
-            let bottomSkew = lerp(0.5, 1.5, skewY)
+            //let leftSkew = lerp(1.5, 0.5, skewX)
+            //let rightSkew = lerp(0.5, 1.5, skewX)
+            //let topSkew = lerp(1.5, 0.5, skewY)
+            //let bottomSkew = lerp(0.5, 1.5, skewY)
             
-            //let leftSkew:CGFloat = 1.0
-            //let rightSkew:CGFloat = 1.0
-            //let topSkew:CGFloat = 1.0
-            //let bottomSkew:CGFloat = 1.0
+            let leftSkew:CGFloat = 1.0
+            let rightSkew:CGFloat = 1.0
+            let topSkew:CGFloat = 1.0
+            let bottomSkew:CGFloat = 1.0
             
             let perspectiveImageCoords = [
                 "inputTopLeft":CIVector(x: (x-radius*topSkew) * h, y: (y+radius*leftSkew) * h),
@@ -190,7 +193,7 @@ class MLObjectLocalization {
     
     func loadCalibrationImage() {
         // Load our calibration image and convert to RGB bytes
-        calibrationImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/calibration.png")))
+        calibrationImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/calibration_64.png")))
         let cgImage = ciContext.createCGImage(calibrationImage!, from: calibrationImage!.extent)
         
         if cgImage != nil {
@@ -230,8 +233,15 @@ class MLObjectLocalization {
         
         ga.numberOfOrganisms = 400
         
-        ga.adjustPopulation = { (population, generationCount, prng) in
-            for idx in 0..<population.count-1 {
+        ga.adjustPopulation = { (population, populationScores, generationCount, prng) in
+            
+            // if the current best score suck, throw away everything
+            var maxToClear = population.count-1
+            if populationScores.last! < 0.1 {
+                maxToClear = population.count
+                print("CLEAR ALL")
+            }
+            for idx in 0..<maxToClear {
                 population[idx]!.randomizeAll(prng)
                 population[idx]!.validate()
             }
@@ -271,6 +281,14 @@ class MLObjectLocalization {
         
         ga.scoreOrganism = { (organism, threadIdx, prng) in
             
+            let millisecondsElapsed = ((DispatchTime.now().uptimeNanoseconds - self.watchStart.uptimeNanoseconds) / 1000000)
+            if millisecondsElapsed > 1000 {
+                self.watchStart = DispatchTime.now()
+                
+                print("\(ga.numberOfGenerations - self.lastGenerationCount) generations/sec")
+                self.lastGenerationCount = ga.numberOfGenerations
+            }
+                        
             return autoreleasepool { () -> Float in
                 
                 let fullsizeCrop = organism.fullsizeCrop(w, h)
@@ -281,56 +299,63 @@ class MLObjectLocalization {
                 let perspectiveImagesCoords = organism.perspectiveCoords(w, h)
                 let extractedImage = self.currentImage!.applyingFilter("CIPerspectiveCorrection", parameters: perspectiveImagesCoords)
 
-                let targetSize:CGFloat = self.calibrationImage!.extent.width
-                let adjustedImage = extractedImage.transformed(by: CGAffineTransform(scaleX: targetSize / extractedImage.extent.width, y: targetSize / extractedImage.extent.height))
-                
-                guard let cgImage = self.ciContext.createCGImage(adjustedImage, from: adjustedImage.extent) else {
-                    return 0.0
-                }
-
-                let width = cgImage.width
-                let height = cgImage.height
-                let bitsPerComponent = cgImage.bitsPerComponent
-                let rowBytes = width * 1
-                let totalBytes = height * width * 1
-                
-                var rgbBytes = [UInt8](repeating: 0, count: totalBytes)
-                
-                let colorSpace = CGColorSpaceCreateDeviceGray()
-                let contextRef = CGContext(data: &rgbBytes, width: width, height: height, bitsPerComponent: bitsPerComponent, bytesPerRow: rowBytes, space: colorSpace, bitmapInfo: CGImageAlphaInfo.none.rawValue)
-                contextRef?.draw(cgImage, in: CGRect(x: 0.0, y: 0.0, width: CGFloat(width), height: CGFloat(height)))
-                
-                
-                // run over both images, and determine how different they are...
-                if self.calibrationRGBBytes.count == rgbBytes.count {
-                    var totalDiff:Double = 0.0
-                    self.autolevels(width, height, &rgbBytes)
-                    for i in 0..<(width*height) {
-                        totalDiff = totalDiff + abs(Double(self.calibrationRGBBytes[i]) - Double(rgbBytes[i]))
-                    }
-                    return 1.0 - Float(totalDiff / Double(width*height*255))
-                }
-                
-                /*
-                do {
-                    let request = VNCoreMLRequest(model: model)
-                
-                    try self.handler.perform([request], on: extractedImage)
+                let useCoreML = true
+                if !useCoreML {
+                    let targetSize:CGFloat = self.calibrationImage!.extent.width
+                    let adjustedImage = extractedImage.transformed(by: CGAffineTransform(scaleX: targetSize / extractedImage.extent.width, y: targetSize / extractedImage.extent.height))
                     
-                    guard let results = request.results as? [VNClassificationObservation] else {
+                    guard let cgImage = self.ciContext.createCGImage(adjustedImage, from: adjustedImage.extent) else {
                         return 0.0
                     }
-                    var confidence:Float = 0.0
-                    for result in results {
-                        if result.identifier == "clock" {
-                            confidence = result.confidence
+
+                    let width = cgImage.width
+                    let height = cgImage.height
+                    let bitsPerComponent = cgImage.bitsPerComponent
+                    let rowBytes = width * 1
+                    let totalBytes = height * width * 1
+                    
+                    var rgbBytes = [UInt8](repeating: 0, count: totalBytes)
+                    
+                    let colorSpace = CGColorSpaceCreateDeviceGray()
+                    let contextRef = CGContext(data: &rgbBytes, width: width, height: height, bitsPerComponent: bitsPerComponent, bytesPerRow: rowBytes, space: colorSpace, bitmapInfo: CGImageAlphaInfo.none.rawValue)
+                    contextRef?.draw(cgImage, in: CGRect(x: 0.0, y: 0.0, width: CGFloat(width), height: CGFloat(height)))
+                    
+                    
+                    // run over both images, and determine how different they are...
+                    if self.calibrationRGBBytes.count == rgbBytes.count {
+                        var totalDiff:Double = 0.0
+                        self.autolevels(width, height, &rgbBytes)
+                        for i in 0..<(width*height) {
+                            totalDiff = totalDiff + abs(Double(self.calibrationRGBBytes[i]) - Double(rgbBytes[i]))
                         }
+                        
+                        let score = 1.0 - Float(totalDiff / Double(width*height*255))
+                        return score * score * score
                     }
-                    return confidence
-                } catch {
-                    print(error)
+                } else {
+                    if extractedImage.extent.width < 2 || extractedImage.extent.height < 2 {
+                        return 0.0
+                    }
+                    
+                    do {
+                        let request = VNCoreMLRequest(model: model)
+                    
+                        try self.handler.perform([request], on: extractedImage)
+                        
+                        guard let results = request.results as? [VNClassificationObservation] else {
+                            return 0.0
+                        }
+                        var confidence:Float = 0.0
+                        for result in results {
+                            if result.identifier == "clock" {
+                                confidence = result.confidence
+                            }
+                        }
+                        return confidence * confidence * confidence
+                    } catch {
+                        print(error)
+                    }
                 }
-                */
                 
                 return 0.0
             }
@@ -352,7 +377,6 @@ class MLObjectLocalization {
         
         
         let timeout = -1
-        //let timeout = 10000
         let bestOrganism = ga.PerformGenetics (Int64(timeout))
         let bestAccuracy = ga.scoreOrganism(bestOrganism, 1, PRNG())
         print("score: \(bestAccuracy)\n    x:\(bestOrganism.x)\n    y:\(bestOrganism.y)\n    radius:\(bestOrganism.radius)")

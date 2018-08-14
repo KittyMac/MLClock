@@ -16,12 +16,14 @@ import Foundation
 
 class GeneticAlgorithm<T> {
     
-    typealias AdjustPopulationmFunc<T> = ((inout [T?], Int, PRNG) -> Void)
+    typealias AdjustPopulationmFunc<T> = ((inout [T?], inout [Float], Int, PRNG) -> Void)
     typealias GenerateOrganismFunc<T> = ((Int, PRNG) -> T)
     typealias BreedOrganismsFunc<T> = ((T, T, T, PRNG) -> Void)
     typealias ScoreOrganismFunc<T> = ((T, Int, PRNG) -> Float)
     typealias ChosenOrganismFunc<T> = ((T, Float, Int, Int, PRNG) -> Bool)
     
+    // simple counter to keep track of the number of generations (parents selected to breed a child) have passed
+    var numberOfGenerations = 0
     
     // population size: tweak this to your needs
     public var numberOfOrganisms = 20
@@ -78,9 +80,6 @@ class GeneticAlgorithm<T> {
         let localNumberOfOrganismsMinusOnef = Float(numberOfOrganisms - 1)
         let replacementWindow = 2
         
-        // simple counter to keep track of the number of generations (parents selected to breed a child) have passed
-        var numberOfGenerations = 0
-        
         // Create the population arrays; one for the organism classes and another to hold the scores of said organisms
         var allOrganisms = [T?](repeating:nil, count:numberOfOrganisms)
         var allOrganismScores = [Float](repeating:0, count:numberOfOrganisms)
@@ -91,7 +90,7 @@ class GeneticAlgorithm<T> {
             allOrganisms [i] = generateOrganism (i, prng)
         }
         if adjustPopulation != nil {
-            adjustPopulation!(&allOrganisms, 0, prng)
+            adjustPopulation!(&allOrganisms, &allOrganismScores, 0, prng)
         }
         for i in 0..<numberOfOrganisms {
             allOrganismScores [i] = scoreOrganism (allOrganisms [i]!, sharedOrganismIdx, prng)
@@ -249,6 +248,21 @@ class GeneticAlgorithm<T> {
                 // update the number of generations we have now processed
                 numberOfGenerations += maxBreedingPerGeneration;
                 
+                // every little while, introduce new half of the population
+                if numberOfGenerations % (maxBreedingPerGeneration * 500) == 0 {
+                    // Call the delegate to generate all of the organisms in the population array; score them as well
+                    if adjustPopulation != nil {
+                        adjustPopulation!(&allOrganisms, &allOrganismScores, numberOfGenerations, prng)
+                        for i in 0..<localNumberOfOrganismsMinusOne {
+                            allOrganismScores [i] = scoreOrganism (allOrganisms [i]!, sharedOrganismIdx, prng)
+                        }
+                    }
+                    
+                    allOrganismScores [localNumberOfOrganismsMinusOne] = scoreOrganism (allOrganisms [localNumberOfOrganismsMinusOne]!, sharedOrganismIdx, prng)
+                    comboSort(&allOrganismScores, &allOrganisms)
+                    didFindNewBestOrganism = true
+                }
+                    
                 // if we found a new best organism, check with our delegate to see if we need to continue processing or not
                 if (didFindNewBestOrganism && chosenOrganism (allOrganisms [localNumberOfOrganismsMinusOne]!, allOrganismScores [localNumberOfOrganismsMinusOne], numberOfGenerations, sharedOrganismIdx, prng)) {
                     // if we're multi-threaded and we found the correct answer, make sure to let all of the other ring-threads know so they can stop too
@@ -257,22 +271,6 @@ class GeneticAlgorithm<T> {
                     }
                     break;
                 }
-                 
-                // every little while, introduce new half of the population
-                if numberOfGenerations % (maxBreedingPerGeneration * 500) == 0 {
-                    // Call the delegate to generate all of the organisms in the population array; score them as well
-                    if adjustPopulation != nil {
-                        adjustPopulation!(&allOrganisms, numberOfGenerations, prng)
-                        for i in 0..<localNumberOfOrganismsMinusOne {
-                            allOrganismScores [i] = scoreOrganism (allOrganisms [i]!, sharedOrganismIdx, prng)
-                        }
-                    }
-
-                    allOrganismScores [localNumberOfOrganismsMinusOne] = scoreOrganism (allOrganisms [localNumberOfOrganismsMinusOne]!, sharedOrganismIdx, prng)
-                    comboSort(&allOrganismScores, &allOrganisms)
-                    didFindNewBestOrganism = true
-                }
-                
             }
         }
         

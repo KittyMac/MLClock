@@ -46,6 +46,7 @@ def Learn():
 	print("initializing the generator")
 	batch_size = 1
 	generator = data.ClockGenerator(model.IMG_SIZE,model.INCLUDE_SECONDS_HAND,0.2)
+	generator.shakeVariance = 16
 	
 	iterations = 250000 * 4
 		
@@ -101,6 +102,7 @@ def Test():
 	_model = model.createModel(True)
 	
 	generator = data.ClockGenerator(model.IMG_SIZE,model.INCLUDE_SECONDS_HAND,0.2)
+	generator.shakeVariance = 16
 	
 	train,label = generator.generateClockFaces(12*60*60)
 	
@@ -123,6 +125,7 @@ def Test2(timeAsString):
 	_model = model.createModel(True)
 	
 	generator = data.ClockGenerator(model.IMG_SIZE,model.INCLUDE_SECONDS_HAND,0.2)
+	generator.shakeVariance = 16
 	
 	train,label = generator.generateClockFace(parsedTime.hour, parsedTime.minute)
 	results = _model.predict(train)
