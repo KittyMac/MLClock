@@ -105,16 +105,16 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
                     bestHour = 12
                 }
                 
-                if (notclockConfidence + notclockConfidence > displayedClickConfidence) {
-                    displayedClickConfidence = notclockConfidence
-                    DispatchQueue.main.async {
+                DispatchQueue.main.async {
+                    self.clockConfidence.label.text = String(format: "%0.2f%%", (bestHourConfidence + bestMinuteConfidence) * 50.0)
+                
+                    if (notclockConfidence + notclockConfidence > self.displayedClickConfidence) {
+                        self.displayedClickConfidence = notclockConfidence
                         self.clockLabel.label.text = "no clock"
                     }
-                }
-                
-                if (bestHourConfidence + bestMinuteConfidence > displayedClickConfidence) {
-                    displayedClickConfidence = bestHourConfidence + bestMinuteConfidence
-                    DispatchQueue.main.async {
+                    
+                    if (bestHourConfidence + bestMinuteConfidence > self.displayedClickConfidence) {
+                        self.displayedClickConfidence = bestHourConfidence + bestMinuteConfidence
                         self.clockLabel.label.text = String(format: "%02d:%02d", bestHour, bestMinute)
                     }
                 }
@@ -165,6 +165,10 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
     
     fileprivate var clockLabel: Label {
         return mainXmlView!.elementForId("clockLabel")!.asLabel!
+    }
+    
+    fileprivate var clockConfidence: Label {
+        return mainXmlView!.elementForId("clockConfidence")!.asLabel!
     }
     
     fileprivate var preview: ImageView {

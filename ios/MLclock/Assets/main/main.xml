@@ -16,8 +16,13 @@
     <Constraint firstItem="cropPreview" firstAttribute="top" secondItem="root" secondAttribute="top" constant="0" />
     
     <View id="labelContainer" backgroundColor="#000000FF">
-        <Label id="clockLabel" text="00:00" styleId="LabelClock" numberOfLines="1" adjustsFontSizeToFitWidth="true" />
+        <Label id="clockLabel" text="no clock" styleId="LabelClock" numberOfLines="1" adjustsFontSizeToFitWidth="true" />
         <Constraint firstItem="clockLabel" ruleSet="fillSuperview" ruleSetInfo="60,60,60,60" />
+        
+        <Label id="clockConfidence" text="" styleId="LabelConfidence" numberOfLines="1" adjustsFontSizeToFitWidth="true" />
+        <Constraint firstItem="clockConfidence" firstAttribute="bottom" secondItem="clockLabel" secondAttribute="bottom" constant="0"/>
+        <Constraint firstItem="clockConfidence" firstAttribute="width" secondItem="labelContainer" secondAttribute="width" constant="0"/>
+        <Constraint firstItem="clockConfidence" firstAttribute="height" constant="60"/>
     </View>
     <Constraint firstItem="labelContainer" firstAttribute="left" secondItem="root" secondAttribute="left" constant="0"/>
     <Constraint firstItem="labelContainer" firstAttribute="right" secondItem="root" secondAttribute="right" constant="0"/>

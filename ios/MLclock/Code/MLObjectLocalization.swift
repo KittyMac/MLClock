@@ -9,6 +9,7 @@ class MLObjectLocalization {
     private var currentImage:CIImage? = nil
     private var bestCropRect:CGRect = CGRect.zero
     private var bestPerspectiveCoords:[String:Any] = [:]
+    private var bestScore:Float = 0.0
     
     let ciContext = CIContext(options: [:])
     var calibrationImage:CIImage? = nil
@@ -178,6 +179,89 @@ class MLObjectLocalization {
             ]
             return perspectiveImageCoords
         }
+        
+        func scoreCoreML(_ model:VNCoreMLModel, _ handler:VNSequenceRequestHandler, _ extractedImage:CIImage) -> Float {
+            if extractedImage.extent.width < 2 || extractedImage.extent.height < 2 {
+                return 0.0
+            }
+            
+            do {
+                let request = VNCoreMLRequest(model: model)
+                
+                try handler.perform([request], on: extractedImage)
+                
+                guard let results = request.results as? [VNClassificationObservation] else {
+                    return 0.0
+                }
+                var confidence:Float = 0.0
+                for result in results {
+                    if result.identifier == "clock" {
+                        confidence = result.confidence
+                    }
+                }
+                return confidence * confidence * confidence
+            } catch {
+                print(error)
+            }
+            return 0.0
+        }
+        
+        func scoreSimpleMatch(_ calibrationRGBBytes:[UInt8], _ calibrationImage:CIImage, _ extractedImage:CIImage, _ ciContext:CIContext) -> Float {
+            let targetSize:CGFloat = calibrationImage.extent.width
+            let adjustedImage = extractedImage.transformed(by: CGAffineTransform(scaleX: targetSize / extractedImage.extent.width, y: targetSize / extractedImage.extent.height))
+            
+            guard let cgImage = ciContext.createCGImage(adjustedImage, from: adjustedImage.extent) else {
+                return 0.0
+            }
+            
+            let width = cgImage.width
+            let height = cgImage.height
+            let bitsPerComponent = cgImage.bitsPerComponent
+            let rowBytes = width * 1
+            let totalBytes = height * width * 1
+            
+            var rgbBytes = [UInt8](repeating: 0, count: totalBytes)
+            
+            let colorSpace = CGColorSpaceCreateDeviceGray()
+            let contextRef = CGContext(data: &rgbBytes, width: width, height: height, bitsPerComponent: bitsPerComponent, bytesPerRow: rowBytes, space: colorSpace, bitmapInfo: CGImageAlphaInfo.none.rawValue)
+            contextRef?.draw(cgImage, in: CGRect(x: 0.0, y: 0.0, width: CGFloat(width), height: CGFloat(height)))
+            
+            
+            // run over both images, and determine how different they are...
+            if calibrationRGBBytes.count == rgbBytes.count {
+                var totalDiff:Double = 0.0
+                Organism.autolevels(width, height, &rgbBytes)
+                for i in 0..<(width*height) {
+                    totalDiff = totalDiff + abs(Double(calibrationRGBBytes[i]) - Double(rgbBytes[i]))
+                }
+                
+                let score = 1.0 - Float(totalDiff / Double(width*height*255))
+                return score * score * score
+            }
+            return 0.0
+        }
+        
+        static func autolevels(_ width:Int, _ height:Int, _ bytes:inout [UInt8]) {
+            var min:CGFloat = 255
+            var max:CGFloat = 0
+            for i in 0..<(width*height) {
+                let grey = CGFloat(bytes[i])
+                if grey > max {
+                    max = grey
+                }
+                if grey < min {
+                    min = grey
+                }
+            }
+            
+            if (max - min) <= 0 {
+                return
+            }
+            
+            for i in 0..<(width*height) {
+                bytes[i] = UInt8((CGFloat(bytes[i]) - min) * (255.0 / (max - min)))
+            }
+        }
     }
     
     func workingImage() -> CIImage{
@@ -210,7 +294,7 @@ class MLObjectLocalization {
             
             contextRef?.draw(cgImage!, in: CGRect(x: 0.0, y: 0.0, width: CGFloat(width), height: CGFloat(height)))
             
-            autolevels(width, height, &calibrationRGBBytes)
+            Organism.autolevels(width, height, &calibrationRGBBytes)
         }
     }
     
@@ -234,16 +318,56 @@ class MLObjectLocalization {
         ga.numberOfOrganisms = 400
         
         ga.adjustPopulation = { (population, populationScores, generationCount, prng) in
-            
-            // if the current best score suck, throw away everything
+            // if the current best score is stuck low, throw away everything and start fresh
             var maxToClear = population.count-1
+            if populationScores.last! > 0.8 {
+                return
+            }
             if populationScores.last! < 0.1 {
                 maxToClear = population.count
-                print("CLEAR ALL")
             }
             for idx in 0..<maxToClear {
                 population[idx]!.randomizeAll(prng)
                 population[idx]!.validate()
+            }
+            
+            if self.calibrationImage != nil {
+                // start some of the population out with a grid, to help spread out the initial search
+                let temp = Organism()
+                var idx = 0
+                for s in [0.05, 0.1, 0.2, 0.3, 0.4] {
+                    var x = s
+                    while x < 1.0 - s {
+                        
+                        var y = s
+                        while y < 1.0 - s {
+                            
+                            if idx < maxToClear-1 {
+                                
+                                temp.x = CGFloat(x)
+                                temp.y = CGFloat(y)
+                                temp.radius = CGFloat(s)
+                                
+                                let perspectiveImagesCoords = temp.perspectiveCoords(w, h)
+                                let extractedImage = self.currentImage!.applyingFilter("CIPerspectiveCorrection", parameters: perspectiveImagesCoords)
+
+                                if temp.scoreSimpleMatch(self.calibrationRGBBytes, self.calibrationImage!, extractedImage, self.ciContext) > 0.4 {
+                                    population[idx]?.x = temp.x
+                                    population[idx]?.y = temp.y
+                                    population[idx]?.radius = temp.radius
+                                    population[idx]?.validate()
+                                    idx += 1
+                                }
+                            }
+                            
+                            y += s/2
+                        }
+                        
+                        x += s/2
+                    }
+                }
+                
+                print("grided population \(idx)")
             }
         }
         
@@ -301,63 +425,10 @@ class MLObjectLocalization {
 
                 let useCoreML = true
                 if !useCoreML {
-                    let targetSize:CGFloat = self.calibrationImage!.extent.width
-                    let adjustedImage = extractedImage.transformed(by: CGAffineTransform(scaleX: targetSize / extractedImage.extent.width, y: targetSize / extractedImage.extent.height))
-                    
-                    guard let cgImage = self.ciContext.createCGImage(adjustedImage, from: adjustedImage.extent) else {
-                        return 0.0
-                    }
-
-                    let width = cgImage.width
-                    let height = cgImage.height
-                    let bitsPerComponent = cgImage.bitsPerComponent
-                    let rowBytes = width * 1
-                    let totalBytes = height * width * 1
-                    
-                    var rgbBytes = [UInt8](repeating: 0, count: totalBytes)
-                    
-                    let colorSpace = CGColorSpaceCreateDeviceGray()
-                    let contextRef = CGContext(data: &rgbBytes, width: width, height: height, bitsPerComponent: bitsPerComponent, bytesPerRow: rowBytes, space: colorSpace, bitmapInfo: CGImageAlphaInfo.none.rawValue)
-                    contextRef?.draw(cgImage, in: CGRect(x: 0.0, y: 0.0, width: CGFloat(width), height: CGFloat(height)))
-                    
-                    
-                    // run over both images, and determine how different they are...
-                    if self.calibrationRGBBytes.count == rgbBytes.count {
-                        var totalDiff:Double = 0.0
-                        self.autolevels(width, height, &rgbBytes)
-                        for i in 0..<(width*height) {
-                            totalDiff = totalDiff + abs(Double(self.calibrationRGBBytes[i]) - Double(rgbBytes[i]))
-                        }
-                        
-                        let score = 1.0 - Float(totalDiff / Double(width*height*255))
-                        return score * score * score
-                    }
+                    return organism.scoreSimpleMatch(self.calibrationRGBBytes, self.calibrationImage!, extractedImage, self.ciContext)
                 } else {
-                    if extractedImage.extent.width < 2 || extractedImage.extent.height < 2 {
-                        return 0.0
-                    }
-                    
-                    do {
-                        let request = VNCoreMLRequest(model: model)
-                    
-                        try self.handler.perform([request], on: extractedImage)
-                        
-                        guard let results = request.results as? [VNClassificationObservation] else {
-                            return 0.0
-                        }
-                        var confidence:Float = 0.0
-                        for result in results {
-                            if result.identifier == "clock" {
-                                confidence = result.confidence
-                            }
-                        }
-                        return confidence * confidence * confidence
-                    } catch {
-                        print(error)
-                    }
+                    return organism.scoreCoreML(self.model!, self.handler, extractedImage)
                 }
-                
-                return 0.0
             }
         }
         
@@ -366,6 +437,7 @@ class MLObjectLocalization {
             
             self.bestCropRect = organism.fullsizeCrop(w, h)
             self.bestPerspectiveCoords = organism.perspectiveCoords(w, h)
+            self.bestScore = score
 
             print("score: \(score)\n    x:\(organism.x)\n    y:\(organism.y)\n    radius:\(organism.radius)\n    skewX:\(organism.skewX)\n    skewY:\(organism.skewY)")
             
@@ -386,30 +458,12 @@ class MLObjectLocalization {
         return bestCropRect
     }
     
-    func bestPerspective() -> [String:Any] {
-        return bestPerspectiveCoords
+    func bestConfidence() -> Float {
+        return bestScore
     }
     
-    func autolevels(_ width:Int, _ height:Int, _ bytes:inout [UInt8]) {
-        var min:CGFloat = 255
-        var max:CGFloat = 0
-        for i in 0..<(width*height) {
-            let grey = CGFloat(bytes[i])
-            if grey > max {
-                max = grey
-            }
-            if grey < min {
-                min = grey
-            }
-        }
-        
-        if (max - min) <= 0 {
-            return
-        }
-        
-        for i in 0..<(width*height) {
-            bytes[i] = UInt8((CGFloat(bytes[i]) - min) * (255.0 / (max - min)))
-        }
+    func bestPerspective() -> [String:Any] {
+        return bestPerspectiveCoords
     }
     
     func loadModel() {

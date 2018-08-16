@@ -6,6 +6,7 @@
     <Button styleId="ButtonDelete" backgroundColor="#e14329FF" backgroundColorHighlighted="#ae341fFF" cornerRadius="5"/>
 
     <Label styleId="LabelClock" fontName="GillSans-SemiBold" fontSize="72" textColor="#DDDDDDFF" textAlignment="center" />
+    <Label styleId="LabelConfidence" fontName="GillSans" fontSize="18" textColor="#999999FF" textAlignment="center" />
 
     <Label styleId="LabelSmall" fontName="GillSans" fontSize="16" textColor="#111111FF" />
     <Label styleId="LabelSmallBld" fontName="GillSans-SemiBold" fontSize="16" textColor="#111111FF" />
