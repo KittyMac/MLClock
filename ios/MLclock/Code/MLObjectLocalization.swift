@@ -190,13 +190,52 @@ class MLObjectLocalization {
                 guard let results = request.results as? [VNClassificationObservation] else {
                     return 0.0
                 }
-                var confidence:Float = 0.0
+                
+                var notclockConfidence:Float = 0.0
+                
                 for result in results {
-                    if result.identifier == "clock" {
-                        confidence = result.confidence
+                    if result.identifier == "notclock" {
+                        notclockConfidence = result.confidence
+                        break
                     }
                 }
-                return confidence
+
+                
+                var bestHour = 0
+                var bestHourConfidence:Float = 0.0
+                
+                for i in 0...12 {
+                    let identifier = "hour\(i)"
+                    for result in results {
+                        if result.identifier == identifier {
+                            let confidence = result.confidence
+                            if confidence > bestHourConfidence {
+                                bestHourConfidence = confidence
+                                bestHour = i
+                            }
+                        }
+                    }
+                }
+                
+                // find the highest confidence minute
+                var bestMinute = 0
+                var bestMinuteConfidence:Float = 0.0
+                
+                for i in 0...60 {
+                    let identifier = "minute\(i)"
+                    for result in results {
+                        if result.identifier == identifier {
+                            let confidence = result.confidence
+                            if confidence > bestMinuteConfidence {
+                                bestMinuteConfidence = confidence
+                                bestMinute = i
+                            }
+                        }
+                    }
+                }
+                
+                return (bestMinuteConfidence + bestHourConfidence) * 0.5 - notclockConfidence * 0.3
+                
             } catch {
                 print(error)
             }
@@ -267,8 +306,8 @@ class MLObjectLocalization {
     
     func updateImage(_ newImage:CIImage) {
         let cgimg = self.ciContext.createCGImage(newImage, from: newImage.extent)
-        //let imgData = UIImagePNGRepresentation(UIImage(cgImage: cgimg!))
-        let imgData = UIImageJPEGRepresentation(UIImage(cgImage: cgimg!), 1.0)
+        let imgData = UIImagePNGRepresentation(UIImage(cgImage: cgimg!))
+        //let imgData = UIImageJPEGRepresentation(UIImage(cgImage: cgimg!), 1.0)
         currentImage = CIImage(data: imgData!)
     }
     
@@ -423,19 +462,21 @@ class MLObjectLocalization {
                 let perspectiveImagesCoords = organism.perspectiveCoords(w, h)
                 let extractedImage = self.currentImage!.applyingFilter("CIPerspectiveCorrection", parameters: perspectiveImagesCoords)
 
-                let useCoreML = true
+                /*
+                let useCoreML = false
                 if !useCoreML {
                     return organism.scoreSimpleMatch(self.calibrationRGBBytes, self.calibrationImage!, extractedImage, self.ciContext)
                 } else {
                     return organism.scoreCoreML(self.model!, self.handler, extractedImage)
-                }
+                }*/
+                
+                return organism.scoreSimpleMatch(self.calibrationRGBBytes, self.calibrationImage!, extractedImage, self.ciContext) + organism.scoreCoreML(self.model!, self.handler, extractedImage)
             }
         }
         
         ga.chosenOrganism = { (organism, score, generation, sharedOrganismIdx, prng) in
             self.bestCropRect = organism.fullsizeCrop(w, h)
             self.bestPerspectiveCoords = organism.perspectiveCoords(w, h)
-            self.bestScore = score
 
             print("score: \(score)\n    x:\(organism.x)\n    y:\(organism.y)\n    radius:\(organism.radius)\n    skewX:\(organism.skewX)\n    skewY:\(organism.skewY)")
             
@@ -466,7 +507,7 @@ class MLObjectLocalization {
     
     func loadModel() {
         do {
-            let modelURL = URL(fileURLWithPath: String(bundlePath:"bundle://Assets/main/clock.mlmodel"))
+            let modelURL = URL(fileURLWithPath: String(bundlePath:"bundle://Assets/main/time.mlmodel"))
             let compiledUrl = try MLModel.compileModel(at: modelURL)
             let model = try MLModel(contentsOf: compiledUrl)
             self.model = try? VNCoreMLModel(for: model)

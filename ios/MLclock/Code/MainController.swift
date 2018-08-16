@@ -34,7 +34,7 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
                 ]
         }
         
-        if frameNumber % 2000 == 0 {
+        if frameNumber % 50 == 0 {
             objectLocalization.updateImage(localImage)
         }
         
@@ -104,7 +104,7 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
                 if bestHour == 0 {
                     bestHour = 12
                 }
-                
+                                
                 DispatchQueue.main.async {
                     self.clockConfidence.label.text = String(format: "%0.2f%%", (bestHourConfidence + bestMinuteConfidence) * 50.0)
                 
