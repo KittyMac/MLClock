@@ -161,21 +161,18 @@ class MLObjectLocalization {
         }
         
         func perspectiveCoords(_ w:CGFloat, _ h:CGFloat) -> [String:Any] {
-            //let leftSkew = lerp(1.5, 0.5, skewX)
-            //let rightSkew = lerp(0.5, 1.5, skewX)
-            //let topSkew = lerp(1.5, 0.5, skewY)
-            //let bottomSkew = lerp(0.5, 1.5, skewY)
-            
-            let leftSkew:CGFloat = 1.0
-            let rightSkew:CGFloat = 1.0
-            let topSkew:CGFloat = 1.0
-            let bottomSkew:CGFloat = 1.0
+            let minSkew:CGFloat = 0.9
+            let maxSkew:CGFloat = 1.1
+            let leftSkew = lerp(maxSkew, minSkew, skewX)
+            let rightSkew = lerp(minSkew, maxSkew, skewX)
+            let topSkew = lerp(maxSkew, minSkew, skewY)
+            let bottomSkew = lerp(minSkew, maxSkew, skewY)
             
             let perspectiveImageCoords = [
-                "inputTopLeft":CIVector(x: (x-radius*topSkew) * h, y: (y+radius*leftSkew) * h),
-                "inputTopRight":CIVector(x: (x+radius*topSkew) * h, y: (y+radius*rightSkew) * h),
-                "inputBottomLeft":CIVector(x: (x-radius*bottomSkew) * h, y: (y-radius*leftSkew) * h),
-                "inputBottomRight":CIVector(x: (x+radius*bottomSkew) * h, y: (y-radius*rightSkew) * h)
+                "inputTopLeft":CIVector(x: (x*w-radius*h*topSkew), y: (y*w+radius*h*leftSkew)),
+                "inputTopRight":CIVector(x: (x*w+radius*h*topSkew), y: (y*w+radius*h*rightSkew)),
+                "inputBottomLeft":CIVector(x: (x*w-radius*h*bottomSkew), y: (y*w-radius*h*leftSkew)),
+                "inputBottomRight":CIVector(x: (x*w+radius*h*bottomSkew), y: (y*w-radius*h*rightSkew))
             ]
             return perspectiveImageCoords
         }
@@ -199,7 +196,7 @@ class MLObjectLocalization {
                         confidence = result.confidence
                     }
                 }
-                return confidence * confidence * confidence
+                return confidence
             } catch {
                 print(error)
             }
@@ -236,7 +233,7 @@ class MLObjectLocalization {
                 }
                 
                 let score = 1.0 - Float(totalDiff / Double(width*height*255))
-                return score * score * score
+                return score
             }
             return 0.0
         }
@@ -315,16 +312,13 @@ class MLObjectLocalization {
         
         let ga = GeneticAlgorithm<Organism>()
         
-        ga.numberOfOrganisms = 400
+        ga.numberOfOrganisms = 200
         
         ga.adjustPopulation = { (population, populationScores, generationCount, prng) in
             // if the current best score is stuck low, throw away everything and start fresh
-            var maxToClear = population.count-1
+            let maxToClear = population.count-1
             if populationScores.last! > 0.8 {
                 return
-            }
-            if populationScores.last! < 0.1 {
-                maxToClear = population.count
             }
             for idx in 0..<maxToClear {
                 population[idx]!.randomizeAll(prng)
@@ -332,31 +326,37 @@ class MLObjectLocalization {
             }
             
             if self.calibrationImage != nil {
+                
+                print("begin grided population")
+                
                 // start some of the population out with a grid, to help spread out the initial search
                 let temp = Organism()
-                var idx = 0
+                var gridScores:[Float] = [Float](repeating: 0.0, count: ga.numberOfOrganisms / 2)
                 for s in [0.05, 0.1, 0.2, 0.3, 0.4] {
+
                     var x = s
                     while x < 1.0 - s {
                         
                         var y = s
                         while y < 1.0 - s {
                             
-                            if idx < maxToClear-1 {
-                                
-                                temp.x = CGFloat(x)
-                                temp.y = CGFloat(y)
-                                temp.radius = CGFloat(s)
-                                
-                                let perspectiveImagesCoords = temp.perspectiveCoords(w, h)
-                                let extractedImage = self.currentImage!.applyingFilter("CIPerspectiveCorrection", parameters: perspectiveImagesCoords)
-
-                                if temp.scoreSimpleMatch(self.calibrationRGBBytes, self.calibrationImage!, extractedImage, self.ciContext) > 0.4 {
-                                    population[idx]?.x = temp.x
-                                    population[idx]?.y = temp.y
-                                    population[idx]?.radius = temp.radius
-                                    population[idx]?.validate()
-                                    idx += 1
+                            temp.x = CGFloat(x)
+                            temp.y = CGFloat(y)
+                            temp.radius = CGFloat(s)
+                            
+                            let perspectiveImagesCoords = temp.perspectiveCoords(w, h)
+                            let extractedImage = self.currentImage!.applyingFilter("CIPerspectiveCorrection", parameters: perspectiveImagesCoords)
+                            let tempScore = temp.scoreSimpleMatch(self.calibrationRGBBytes, self.calibrationImage!, extractedImage, self.ciContext)
+                            for i in 0..<gridScores.count {
+                                if tempScore > gridScores[i] {
+                                    gridScores[i] = tempScore
+                                    population[i]?.x = temp.x
+                                    population[i]?.y = temp.y
+                                    population[i]?.radius = temp.radius
+                                    population[i]?.skewX = temp.skewX
+                                    population[i]?.skewY = temp.skewY
+                                    population[i]?.validate()
+                                    break
                                 }
                             }
                             
@@ -367,7 +367,7 @@ class MLObjectLocalization {
                     }
                 }
                 
-                print("grided population \(idx)")
+                print("... end grided population")
             }
         }
         
@@ -433,8 +433,6 @@ class MLObjectLocalization {
         }
         
         ga.chosenOrganism = { (organism, score, generation, sharedOrganismIdx, prng) in
-            print("...\(score)")
-            
             self.bestCropRect = organism.fullsizeCrop(w, h)
             self.bestPerspectiveCoords = organism.perspectiveCoords(w, h)
             self.bestScore = score

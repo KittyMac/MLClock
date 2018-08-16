@@ -116,6 +116,7 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
                     if (bestHourConfidence + bestMinuteConfidence > self.displayedClickConfidence) {
                         self.displayedClickConfidence = bestHourConfidence + bestMinuteConfidence
                         self.clockLabel.label.text = String(format: "%02d:%02d", bestHour, bestMinute)
+                        print("time: \(self.clockLabel.label.text!) confidence: \(self.clockConfidence.label.text!)")
                     }
                 }
                 
@@ -145,7 +146,7 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
         mainBundlePath = "bundle://Assets/main/main.xml"
         loadView()
         
-        overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/full_clock4.jpg")))
+        //overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/full_clock4.jpg")))
         
         captureHelper.delegate = self
         captureHelper.delegateWantsPerspectiveImages = true
