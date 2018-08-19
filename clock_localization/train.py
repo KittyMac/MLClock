@@ -59,7 +59,7 @@ def Learn():
 			break
 		
 		#n = int(random.random() * 43200)
-		n = 25000
+		n = 2500
 		print(i)
 		Train(generator,_model,n)
 		i += n
@@ -73,8 +73,10 @@ def Learn():
 
 def Convert():
 	output_labels = []
-	output_labels.append("notclock")
-	output_labels.append("clock")
+	output_labels.append("xmin")
+	output_labels.append("ymin")
+	output_labels.append("xmax")
+	output_labels.append("ymax")
 		
 	coreml_model = coremltools.converters.keras.convert(model.MODEL_H5_NAME,input_names='image',image_input_names='image',class_labels=output_labels, image_scale=1/255.0)
 	coreml_model.author = 'Rocco Bowling'   
@@ -85,8 +87,7 @@ def Convert():
 
 def Train(generator,_model,n):
 	
-	train,label = generator.generateClockFaces(n)
-	label = FixLabels(label)
+	train,label = generator.generateClocksForLocalization(n)
 	
 	batch_size = 32
 	if n < batch_size:
@@ -100,8 +101,7 @@ def Test():
 	generator = data.ClockGenerator(model.IMG_SIZE,model.INCLUDE_SECONDS_HAND,0.5)
 	generator.shakeVariance = 0
 	
-	train,label = generator.generateClockFaces(12*60*60)
-	label = FixLabels(label)
+	train,label = generator.generateClocksForLocalization(12*60*60)
 	
 	results = _model.predict(train)
 	
@@ -112,17 +112,6 @@ def Test():
 			correct += 1
 	print("correct", correct, "total", len(label))
 	
-
-def FixLabels(label):
-	newLabels = np.zeros((len(label),2), dtype='float32')
-	for i in range(0,len(label)):
-		if label[i][0] == 1:
-			newLabels[i][0] = 1
-			newLabels[i][1] = 0
-		else:
-			newLabels[i][0] = 0
-			newLabels[i][1] = 1
-	return newLabels
 
 if __name__ == '__main__':
 	if sys.argv >= 2:

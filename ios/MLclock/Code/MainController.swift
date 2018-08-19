@@ -34,14 +34,12 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
                 ]
         }
         
-        if frameNumber % 50 == 0 {
-            objectLocalization.updateImage(localImage)
-        }
-        
         let bestCrop = objectLocalization.bestCrop()
         if bestCrop.size.width > 2.0 && bestCrop.size.height > 2.0 {
             detectTimeFromImage(localImage, objectLocalization.workingImage(), objectLocalization.bestPerspective())
         }
+        
+        objectLocalization.updateImage(localImage)
     }
     
     
