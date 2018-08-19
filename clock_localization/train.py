@@ -23,6 +23,8 @@ import signal
 import time
 import coremltools
 
+from PIL import Image,ImageDraw
+
 ######
 # allows us to used ctrl-c to end gracefully instead of just dying
 ######
@@ -48,7 +50,7 @@ def Learn():
 	generator = data.ClockGenerator(model.IMG_SIZE,model.INCLUDE_SECONDS_HAND,0.5)
 	generator.shakeVariance = 0
 	
-	iterations = 1000000
+	iterations = 10000000
 		
 	print("beginning training")
 	handler = SignalHandler()
@@ -59,7 +61,7 @@ def Learn():
 			break
 		
 		#n = int(random.random() * 43200)
-		n = 5000
+		n = 10000
 		print(i)
 		Train(generator,_model,n)
 		i += n
@@ -101,16 +103,24 @@ def Test():
 	generator = data.ClockGenerator(model.IMG_SIZE,model.INCLUDE_SECONDS_HAND,0.5)
 	generator.shakeVariance = 0
 	
-	train,label = generator.generateClocksForLocalization(12*60*60)
+	input,output = generator.generateClocksForLocalization(20)
 	
-	results = _model.predict(train)
+	results = _model.predict(input)
 	
 	
 	correct = 0
-	for i in range(0,len(label)):
-		if np.argmax(label[i]) == np.argmax(results[i]):
-			correct += 1
-	print("correct", correct, "total", len(label))
+	for i in range(0,len(output)):
+		# save the image with the expect and predicted rectangles drawn on it??
+		sourceImg = Image.fromarray(input[i].reshape(model.IMG_SIZE[1],model.IMG_SIZE[0]) * 255.0).convert("RGB")
+				
+		draw = ImageDraw.Draw(sourceImg)
+		draw.rectangle(output[i]*model.IMG_SIZE[1], outline="green")
+		draw.rectangle(results[i]*model.IMG_SIZE[1], outline="red")
+		
+		filepath = '/tmp/clock_%s_%d.png' % (generator.convertOutputToRect(output[i]), i)
+		sourceImg.save(filepath)
+		
+		
 	
 
 if __name__ == '__main__':

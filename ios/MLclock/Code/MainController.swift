@@ -34,16 +34,16 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
                 ]
         }
         
+        objectLocalization.updateImage(localImage)
+        
         let bestCrop = objectLocalization.bestCrop()
         if bestCrop.size.width > 2.0 && bestCrop.size.height > 2.0 {
-            detectTimeFromImage(localImage, objectLocalization.workingImage(), objectLocalization.bestPerspective())
+            detectTimeFromImage(localImage, objectLocalization.bestPerspective())
         }
-        
-        objectLocalization.updateImage(localImage)
     }
     
     
-    func detectTimeFromImage(_ fullImage:CIImage, _ localizedImage:CIImage, _ perspectiveImagesCoords:[String:Any]) {
+    func detectTimeFromImage(_ fullImage:CIImage, _ perspectiveImagesCoords:[String:Any]) {
         
         let extractedImage = fullImage.applyingFilter("CIPerspectiveCorrection", parameters: perspectiveImagesCoords)
         
@@ -144,22 +144,18 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
         mainBundlePath = "bundle://Assets/main/main.xml"
         loadView()
         
-        //overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/full_clock4.jpg")))
+        //overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/full_clock6.jpg")))
+        //overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/localization_test.png")))
         
         captureHelper.delegate = self
         captureHelper.delegateWantsPerspectiveImages = true
         captureHelper.delegateWantsPlayImages = true
         captureHelper.maxDesiredImageResolution = 1280 * 720
+        captureHelper.delegateWantsSquareCrop = true
         
         loadModel()
         
         UIApplication.shared.isIdleTimerDisabled = true
-        
-        objectLocalization.begin()
-    }
-    
-    deinit {
-        objectLocalization.end()
     }
     
     fileprivate var clockLabel: Label {

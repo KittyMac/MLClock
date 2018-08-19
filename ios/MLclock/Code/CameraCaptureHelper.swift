@@ -57,6 +57,8 @@ class CameraCaptureHelper: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
     var delegateWantsHiSpeedCamera = false
     var maxDesiredImageResolution:CGFloat = -1.0
     
+    var delegateWantsSquareCrop = false
+    
     weak var delegate: CameraCaptureHelperDelegate?
     
     required init(cameraPosition: AVCaptureDevice.Position)
@@ -290,6 +292,18 @@ class CameraCaptureHelper: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
         if self.delegateWantsPictureInPictureImages && pipImagesCoords.count > 0 {
             let pipImage = originalImage.applyingFilter("CIPerspectiveCorrection", parameters: pipImagesCoords)
             cameraImage = pipImage.composited(over: cameraImage)
+        }
+        
+        if self.delegateWantsSquareCrop {
+            let x = cameraImage.extent.origin.x
+            let y = cameraImage.extent.origin.y
+            let w = cameraImage.extent.size.width
+            let h = cameraImage.extent.size.height
+            if w < h {
+                cameraImage = cameraImage.cropped(to: CGRect(x:x, y:y, width:w, height:w))
+            } else {
+                cameraImage = cameraImage.cropped(to: CGRect(x:x, y:y, width:h, height:h))
+            }
         }
         
         

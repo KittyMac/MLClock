@@ -66,12 +66,13 @@ class ClockGenerator(keras.utils.Sequence):
 			int(30 + random.random() * 210)))
 		
 		# allow empty images through
-		if random.random() > 0.1:
+		if random.random() > 0.5:
 			randomImg1 = self.getRandomImage(int(random.random()*230))
 			randomImg2 = self.getRandomImage(int(random.random()*230))
 		
 			img.paste(randomImg1, (0,0), img)
-			img.paste(randomImg2, (0,0), img)
+			if random.random() > 0.5:
+				img.paste(randomImg2, (0,0), img)
 		
 		return img
 		
@@ -214,6 +215,14 @@ class ClockGenerator(keras.utils.Sequence):
 				
 		return input_images,output_values
 	
+	def easeInExpo (self, start, end, val):
+		return (end - start) * pow(2, 10 * (val / 1 - 1)) + start
+	
+	def easeInQuad (self, start, end, val):
+		end -= start
+		return end * val * val + start
+	
+	
 	def generateClocksForLocalization(self, num):
 		input_images = np.zeros((num,self.imgSize[1],self.imgSize[0],self.imgSize[2]), dtype='float32')
 		output_values = np.zeros((num,4), dtype='float32')
@@ -227,11 +236,18 @@ class ClockGenerator(keras.utils.Sequence):
 			clock = self.generateClockImage(random.random() * 360, random.random() * 360, random.random() * 360, False)
 			
 			# place clock somewhere randomly in the image
-			scale = random.random() * 0.7 + 0.3
-			xmin = int((random.random() - scale / 2) * self.imgSize[1])
-			ymin = int((random.random() - scale / 2) * self.imgSize[0])
-			width = int(self.imgSize[1]*scale)
-			height = int(self.imgSize[0]*scale)
+			# Note about scale: we want tot weight it so that images with smaller scale
+			# happen more often, as smaller scale images can occupy more spaces on the screen.
+			
+			scale = self.easeInQuad(0.2, 0.9, random.random())
+			aspect = random.random() * 0.2 + 0.9
+			xscale = scale * aspect
+			yscale = scale / aspect
+			
+			xmin = int((random.random() - xscale / 2) * self.imgSize[1])
+			ymin = int((random.random() - yscale / 2) * self.imgSize[0])
+			width = int(self.imgSize[1]*xscale)
+			height = int(self.imgSize[0]*yscale)
 			
 			if xmin < 0:
 				xmin = 0
@@ -245,6 +261,7 @@ class ClockGenerator(keras.utils.Sequence):
 			clock = clock.resize((width,height), Image.ANTIALIAS)
 			
 			rotation_offset = ((random.random() * 32 - 32 / 2) * 2)
+			rotation_offset = 0
 			clockRotated = clock.rotate( rotation_offset )
 			
 			img.paste(clockRotated, (xmin,ymin), clockRotated)
@@ -294,7 +311,7 @@ if __name__ == '__main__':
 	
 	META_PATH = "./meta"
 	
-	generator = ClockGenerator([256,256,1],True,0.0)
+	generator = ClockGenerator([128,128,1],True,0.0)
 	generator.shakeVariance = 0
 	
 	input,output = generator.generateClocksForLocalization(32)	
