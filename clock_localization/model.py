@@ -40,7 +40,6 @@ def createModel(loadFromDisk):
 	model.add(MaxPooling2D(pool_size=(3, 3)))
 	
 	model.add(Conv2D(4, (1, 1), padding="same"))
-	print(model.summary())
 	model.add(Reshape((4,)))
 	
 

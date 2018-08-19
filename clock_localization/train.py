@@ -48,7 +48,7 @@ def Learn():
 	generator = data.ClockGenerator(model.IMG_SIZE,model.INCLUDE_SECONDS_HAND,0.5)
 	generator.shakeVariance = 0
 	
-	iterations = 250000
+	iterations = 1000000
 		
 	print("beginning training")
 	handler = SignalHandler()
@@ -59,7 +59,7 @@ def Learn():
 			break
 		
 		#n = int(random.random() * 43200)
-		n = 2500
+		n = 5000
 		print(i)
 		Train(generator,_model,n)
 		i += n

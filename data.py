@@ -65,16 +65,18 @@ class ClockGenerator(keras.utils.Sequence):
 			int(30 + random.random() * 210),
 			int(30 + random.random() * 210)))
 		
-		randomImg1 = self.getRandomImage(int(random.random()*230))
-		randomImg2 = self.getRandomImage(int(random.random()*230))
+		# allow empty images through
+		if random.random() > 0.1:
+			randomImg1 = self.getRandomImage(int(random.random()*230))
+			randomImg2 = self.getRandomImage(int(random.random()*230))
 		
-		img.paste(randomImg1, (0,0), img)
-		img.paste(randomImg2, (0,0), img)
+			img.paste(randomImg1, (0,0), img)
+			img.paste(randomImg2, (0,0), img)
 		
 		return img
 		
 	def generateClockImage(self,hourHandAngle,minuteHandAngle,secondHandAngle,hasBackground=True):
-				
+
 		offset = (int(random.random() * self.shakeVariance - self.shakeVariance / 2), int(random.random() * self.shakeVariance - self.shakeVariance / 2))
 		rotation_offset = ((random.random() * self.shakeVariance - self.shakeVariance / 2) * 2) / 4
 		
@@ -97,7 +99,7 @@ class ClockGenerator(keras.utils.Sequence):
 		minuteImgRotated = minuteImg.resize(scaleVariance).rotate( (-minuteHandAngle)+90+rotation_offset )
 		
 		faceImgRotated = faceImg.resize(scaleVariance).rotate( rotation_offset )
-		
+				
 		img.paste(faceImgRotated, offset, faceImgRotated)
 		if self.includeSecondsHands:
 			img.paste(secondImgRotated, offset, secondImgRotated)
@@ -241,17 +243,21 @@ class ClockGenerator(keras.utils.Sequence):
 				ymin = self.imgSize[1] - height
 						
 			clock = clock.resize((width,height), Image.ANTIALIAS)
-			img.paste(clock, (xmin,ymin), clock)
+			
+			rotation_offset = ((random.random() * 32 - 32 / 2) * 2)
+			clockRotated = clock.rotate( rotation_offset )
+			
+			img.paste(clockRotated, (xmin,ymin), clockRotated)
 			img = img.convert('L')
 			
 			np.copyto(input_images[idx],np.array(img).reshape(self.imgSize[1],self.imgSize[0],self.imgSize[2]))
 			input_images[idx] /= 255.0
 			
 			# xmin, ymin, xmax, ymax
-			output_values[idx][0] = xmin
-			output_values[idx][1] = ymin
-			output_values[idx][2] = xmin + width
-			output_values[idx][3] = ymin + height
+			output_values[idx][0] = (xmin) / self.imgSize[1]
+			output_values[idx][1] = (ymin) / self.imgSize[0]
+			output_values[idx][2] = (xmin + width) / self.imgSize[1]
+			output_values[idx][3] = (ymin + height) / self.imgSize[0]
 		
 		return input_images,output_values
 			
@@ -277,7 +283,7 @@ class ClockGenerator(keras.utils.Sequence):
 		return "%02d.%02d" % (hour,minute)
 	
 	def convertOutputToRect(self,output):
-		return "%d.%d.%d.%d" % (output[0],output[1],output[2],output[3])
+		return "%d.%d.%d.%d" % (output[0]*self.imgSize[1],output[1]*self.imgSize[0],output[2]*self.imgSize[1],output[3]*self.imgSize[0])
 	
 	def saveImageToFile(self,img,filepath):
 		img = img.reshape(self.imgSize[1],self.imgSize[0]) * 255.0
@@ -289,7 +295,7 @@ if __name__ == '__main__':
 	META_PATH = "./meta"
 	
 	generator = ClockGenerator([256,256,1],True,0.0)
-	generator.shakeVariance = 16
+	generator.shakeVariance = 0
 	
 	input,output = generator.generateClocksForLocalization(32)	
 	for n in range(0,len(input)):
