@@ -53,7 +53,7 @@ class ClockGenerator(keras.utils.Sequence):
 	def getRandomImage(self,idx):
 		if self.randomImages == None:
 			self.randomImages = []
-			for i in range(0,230):
+			for i in range(0,236):
 				self.randomImages.append(Image.open('%s/random/%d.png' % (META_PATH, i), 'r').convert('RGBA').resize((self.imgSize[1],self.imgSize[0]), Image.ANTIALIAS))
 		return self.randomImages[idx]
 	
@@ -66,7 +66,7 @@ class ClockGenerator(keras.utils.Sequence):
 			int(30 + random.random() * 210)))
 		
 		# allow empty images through
-		if random.random() > 0.5:
+		if random.random() > 0.2:
 			randomImg1 = self.getRandomImage(int(random.random()*230))
 			randomImg2 = self.getRandomImage(int(random.random()*230))
 		
@@ -223,59 +223,69 @@ class ClockGenerator(keras.utils.Sequence):
 		return end * val * val + start
 	
 	
-	def generateClocksForLocalization(self, num):
+	def generateClocksForLocalization(self, subdiv, num):
 		input_images = np.zeros((num,self.imgSize[1],self.imgSize[0],self.imgSize[2]), dtype='float32')
-		output_values = np.zeros((num,4), dtype='float32')
-		
+		output_values = np.zeros((num,subdiv+subdiv), dtype='float32')
+
 		for idx in range(0,num):
 			
 			# make a random background
 			img = self.generateNotClockImage()
 			
-			# make a random clock
-			clock = self.generateClockImage(random.random() * 360, random.random() * 360, random.random() * 360, False)
+			if random.random() > self.notClockFaceThreshold:
+				# make a random clock
+				clock = self.generateClockImage(random.random() * 360, random.random() * 360, random.random() * 360, False)
 			
-			# place clock somewhere randomly in the image
-			# Note about scale: we want tot weight it so that images with smaller scale
-			# happen more often, as smaller scale images can occupy more spaces on the screen.
+				# place clock somewhere randomly in the image
+				# Note about scale: we want tot weight it so that images with smaller scale
+				# happen more often, as smaller scale images can occupy more spaces on the screen.
 			
-			scale = self.easeInQuad(0.2, 0.9, random.random())
-			aspect = random.random() * 0.2 + 0.9
-			xscale = scale * aspect
-			yscale = scale / aspect
+				scale = self.easeInQuad(0.1, 0.9, random.random())
+				aspect = random.random() * 0.2 + 0.9
+				xscale = scale * aspect
+				yscale = scale / aspect
 			
-			xmin = int((random.random() - xscale / 2) * self.imgSize[1])
-			ymin = int((random.random() - yscale / 2) * self.imgSize[0])
-			width = int(self.imgSize[1]*xscale)
-			height = int(self.imgSize[0]*yscale)
+				xmin = int((random.random() - xscale / 2) * self.imgSize[1])
+				ymin = int((random.random() - yscale / 2) * self.imgSize[0])
+				width = int(self.imgSize[1]*xscale)
+				height = int(self.imgSize[0]*yscale)
 			
-			if xmin < 0:
-				xmin = 0
-			if ymin < 0:
-				ymin = 0
-			if xmin + width > self.imgSize[1]:
-				xmin = self.imgSize[1] - width
-			if ymin + height > self.imgSize[1]:
-				ymin = self.imgSize[1] - height
-						
-			clock = clock.resize((width,height), Image.ANTIALIAS)
+				if xmin < 0:
+					xmin = 0
+				if ymin < 0:
+					ymin = 0
+				if xmin + width > self.imgSize[1]:
+					xmin = self.imgSize[1] - width
+				if ymin + height > self.imgSize[0]:
+					ymin = self.imgSize[1] - height
 			
-			rotation_offset = ((random.random() * 32 - 32 / 2) * 2)
-			rotation_offset = 0
-			clockRotated = clock.rotate( rotation_offset )
+				xmax = (xmin + width)
+				ymax = (ymin + height)
 			
-			img.paste(clockRotated, (xmin,ymin), clockRotated)
+				clock = clock.resize((width,height), Image.ANTIALIAS)
+			
+				rotation_offset = ((random.random() * 32 - 32 / 2) * 2)
+				rotation_offset = 0
+				clockRotated = clock.rotate( rotation_offset )
+			
+				img.paste(clockRotated, (xmin,ymin), clockRotated)
+				
+				# 10 columns on X, 10 rows on Y, if the clock is in said row or column put a 1 in it
+				xdelta = (self.imgSize[1] / subdiv)
+				ydelta = (self.imgSize[0] / subdiv)
+				for x in range(0, subdiv):
+					for y in range(0, subdiv):
+						xValue = x * xdelta
+						yValue = y * ydelta
+						if xValue+xdelta >= xmin and xValue <= xmax:
+							output_values[idx][x] = 1
+						if yValue+ydelta >= ymin and yValue <= ymax:
+							output_values[idx][subdiv+y] = 1
+			
 			img = img.convert('L')
-			
 			np.copyto(input_images[idx],np.array(img).reshape(self.imgSize[1],self.imgSize[0],self.imgSize[2]))
 			input_images[idx] /= 255.0
-			
-			# xmin, ymin, xmax, ymax
-			output_values[idx][0] = (xmin) / self.imgSize[1]
-			output_values[idx][1] = (ymin) / self.imgSize[0]
-			output_values[idx][2] = (xmin + width) / self.imgSize[1]
-			output_values[idx][3] = (ymin + height) / self.imgSize[0]
-		
+					
 		return input_images,output_values
 			
 		
@@ -300,22 +310,59 @@ class ClockGenerator(keras.utils.Sequence):
 		return "%02d.%02d" % (hour,minute)
 	
 	def convertOutputToRect(self,output):
-		return "%d.%d.%d.%d" % (output[0]*self.imgSize[1],output[1]*self.imgSize[0],output[2]*self.imgSize[1],output[3]*self.imgSize[0])
+		return np.array2string(output.astype(int), separator='.')
 	
 	def saveImageToFile(self,img,filepath):
 		img = img.reshape(self.imgSize[1],self.imgSize[0]) * 255.0
 		Image.fromarray(img).convert("L").save(filepath)
 
+	def GetCoordsFromOutput(self,output,size):
+		subdiv = int(len(output)/2)
+		
+		xdelta = 1.0 / subdiv
+		ydelta = 1.0 / subdiv
+	
+		xmin = 1.0
+		xmax = 0.0
+		ymin = 1.0
+		ymax = 0.0
+	
+		for x in range(0,subdiv):
+			for y in range(0,subdiv):
+				xValue = (x*xdelta)
+				yValue = (y*ydelta)
+				
+				if output[x] >= 0.5:
+					if xValue < xmin:
+						xmin = xValue
+					if xValue+xdelta > xmax:
+						xmax = xValue+xdelta
+				if output[subdiv+y] >= 0.5:
+					if yValue < ymin:
+						ymin = yValue
+					if yValue+ydelta > ymax:
+						ymax = yValue+ydelta
+
+		return (xmin*size[1],ymin*size[0],xmax*size[1],ymax*size[0])
 
 if __name__ == '__main__':
 	
 	META_PATH = "./meta"
 	
-	generator = ClockGenerator([128,128,1],True,0.0)
+	size = [200,200,1]
+	
+	generator = ClockGenerator(size,True,0.2)
 	generator.shakeVariance = 0
 	
-	input,output = generator.generateClocksForLocalization(32)	
+	np.set_printoptions(threshold=20)
+	
+	input,output = generator.generateClocksForLocalization(20,64)	
 	for n in range(0,len(input)):
-		generator.saveImageToFile(input[n], '/tmp/clock_%s_%d.png' % (generator.convertOutputToRect(output[n]), n))
+		sourceImg = Image.fromarray(input[n].reshape(size[1],size[0]) * 255.0).convert("RGB")
+				
+		draw = ImageDraw.Draw(sourceImg)
+		draw.rectangle(generator.GetCoordsFromOutput(output[n],size), outline="green")		
+		
+		sourceImg.save('/tmp/clock_%s_%d.png' % (generator.convertOutputToRect(output[n]), n))
 	
 	

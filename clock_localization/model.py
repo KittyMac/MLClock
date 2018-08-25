@@ -12,7 +12,8 @@ import os
 INCLUDE_SECONDS_HAND = False
 MODEL_H5_NAME = "clock.h5"
 MODEL_COREML_NAME = "../ios/MLclock/Assets/main/clock.mlmodel"
-IMG_SIZE = [128,128,1]
+MODEL_SUBDIVIDE = 100
+IMG_SIZE = [200,200,1]
 
 def doesModelExist():
 	return os.path.isfile(MODEL_H5_NAME)
@@ -22,6 +23,30 @@ def createModel(loadFromDisk):
 	model = Sequential()
 
 
+	# It's time for Rolo
+	model.add(Conv2D(16, (5, 5), input_shape=(IMG_SIZE[1], IMG_SIZE[0], IMG_SIZE[2])))
+	model.add(Activation('relu'))
+	model.add(MaxPooling2D(pool_size=(2, 2)))
+	model.add(Dropout(0.1))
+	
+	model.add(Conv2D(32, (3, 3)))
+	model.add(MaxPooling2D(pool_size=(2, 2)))
+	model.add(Dropout(0.1))
+	
+	model.add(Conv2D(64, (3, 3)))
+	model.add(MaxPooling2D(pool_size=(2, 2)))
+	model.add(Dropout(0.1))
+	
+	model.add(Flatten())
+	model.add(Dense(128))
+	model.add(Activation('relu'))
+	model.add(Dense(MODEL_SUBDIVIDE+MODEL_SUBDIVIDE))
+	model.add(Activation('sigmoid'))
+	
+	model.compile(loss='binary_crossentropy', optimizer="rmsprop", metrics=['accuracy'])
+	
+
+	'''
 	# feature extractor
 	model.add(Conv2D(64, (3, 3), input_shape=(IMG_SIZE[1], IMG_SIZE[0], IMG_SIZE[2])))
 	model.add(Activation('relu'))
@@ -44,6 +69,9 @@ def createModel(loadFromDisk):
 	model.add(Conv2D(4, (1, 1), padding="same"))
 	model.add(Reshape((4,)))
 	
+	model.compile(loss='mean_squared_error', optimizer="rmsprop", metrics=['accuracy'])
+	
+	'''
 	
 	
 	
@@ -81,7 +109,6 @@ def createModel(loadFromDisk):
 	model.add(Reshape((4,)))
 	'''
 
-	model.compile(loss='mean_squared_error', optimizer="rmsprop", metrics=['accuracy'])
 
 	print(model.summary())
 	

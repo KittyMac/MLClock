@@ -21,33 +21,69 @@ class MLObjectLocalization {
                 let request = VNCoreMLRequest(model: self.model!)
                 try self.handler.perform([request], on: newImage)
                 
-                let results = request.results as? [VNClassificationObservation]
+                let results = request.results as? [VNCoreMLFeatureValueObservation]
                 if results != nil {
-                    var xmin:CGFloat = 0
-                    var ymin:CGFloat = 0
-                    var xmax:CGFloat = 0
-                    var ymax:CGFloat = 0
+                    let output = results![0].featureValue.multiArrayValue!
+                    let subdiv = output.count / 2
+                    let xdelta = 1.0 / Double(subdiv)
+                    let ydelta = 1.0 / Double(subdiv)
                     
-                    for result in results! {
-                        if result.identifier == "xmin" {
-                            xmin = CGFloat(result.confidence)
+                    var xmin = 1.0
+                    var xmax = 0.0
+                    var ymin = 1.0
+                    var ymax = 0.0
+                    
+                    var avgXValues = [Int](repeating: 0, count: subdiv)
+                    var avgYValues = [Int](repeating: 0, count: subdiv)
+                    
+                    for i in 0..<subdiv {
+                        avgXValues[i] = Int(output[i].doubleValue * 100)
+                        avgYValues[i] = Int(output[subdiv+i].doubleValue * 100)
+                    }
+                    
+                    /*
+                    if true {
+                        // average by neighbors to bring down individual spikes
+                        avgXValues[0] = (output[0].doubleValue + output[1].doubleValue) / 2.0
+                        avgXValues[subdiv-1] = (output[subdiv-1].doubleValue + output[subdiv-2].doubleValue) / 2.0
+                        
+                        avgYValues[0] = (output[subdiv+0].doubleValue + output[subdiv+1].doubleValue) / 2.0
+                        avgYValues[subdiv-1] = (output[subdiv+subdiv-1].doubleValue + output[subdiv+subdiv-2].doubleValue) / 2.0
+                        
+                        for i in 1..<subdiv-1 {
+                            avgXValues[i] = (output[i].doubleValue + output[i-1].doubleValue + output[i+1].doubleValue) / 3.0
+                            avgYValues[i] = (output[subdiv+i].doubleValue + output[subdiv+i-1].doubleValue + output[subdiv+i+1].doubleValue) / 3.0
                         }
-                        if result.identifier == "ymin" {
-                            ymin = CGFloat(result.confidence)
-                        }
-                        if result.identifier == "xmax" {
-                            xmax = CGFloat(result.confidence)
-                        }
-                        if result.identifier == "ymax" {
-                            ymax = CGFloat(result.confidence)
+                    }*/
+                    
+                    for x in 0..<subdiv {
+                        for y in 0..<subdiv {
+                            let xValue = (Double(x) * xdelta)
+                            let yValue = (Double(y) * ydelta)
+                            
+                            if avgXValues[x] >= 20 && avgYValues[y] >= 20 {
+                                if xValue < xmin {
+                                    xmin = xValue
+                                }
+                                if xValue + xdelta > xmax {
+                                    xmax = xValue + xdelta
+                                }
+
+                                if yValue < ymin {
+                                    ymin = yValue
+                                }
+                                if yValue + ydelta > ymax {
+                                    ymax = yValue + ydelta
+                                }
+                            }
                         }
                     }
                     
-                    // stupid: need to convert from model coords to real image coords
                     let xscale = newImage.extent.width
                     let yscale = newImage.extent.height
                     
-                    self.bestCropRect = CGRect(x: xmin*xscale, y: yscale - ymax*yscale, width: (xmax-xmin)*xscale, height: (ymax-ymin)*yscale)
+                    self.bestCropRect = CGRect(x: CGFloat(xmin)*xscale, y: yscale - CGFloat(ymax)*yscale, width: CGFloat(xmax-xmin)*xscale, height: CGFloat(ymax-ymin)*yscale)
+                    
                 }
                 
             } catch {

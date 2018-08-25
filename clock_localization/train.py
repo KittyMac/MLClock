@@ -74,13 +74,7 @@ def Learn():
 	
 
 def Convert():
-	output_labels = []
-	output_labels.append("xmin")
-	output_labels.append("ymin")
-	output_labels.append("xmax")
-	output_labels.append("ymax")
-		
-	coreml_model = coremltools.converters.keras.convert(model.MODEL_H5_NAME,input_names='image',image_input_names='image',class_labels=output_labels, image_scale=1/255.0)
+	coreml_model = coremltools.converters.keras.convert(model.MODEL_H5_NAME,input_names='image',image_input_names='image', image_scale=1/255.0)
 	coreml_model.author = 'Rocco Bowling'   
 	coreml_model.short_description = 'is the image good clock face to send to the time detector'
 	coreml_model.input_description['image'] = 'image of the clock face'
@@ -89,7 +83,7 @@ def Convert():
 
 def Train(generator,_model,n):
 	
-	train,label = generator.generateClocksForLocalization(n)
+	train,label = generator.generateClocksForLocalization(model.MODEL_SUBDIVIDE,n)
 	
 	batch_size = 32
 	if n < batch_size:
@@ -100,10 +94,12 @@ def Train(generator,_model,n):
 def Test():
 	_model = model.createModel(True)
 	
+	np.set_printoptions(threshold=20)
+	
 	generator = data.ClockGenerator(model.IMG_SIZE,model.INCLUDE_SECONDS_HAND,0.5)
 	generator.shakeVariance = 0
 	
-	input,output = generator.generateClocksForLocalization(20)
+	input,output = generator.generateClocksForLocalization(model.MODEL_SUBDIVIDE,20)
 	
 	results = _model.predict(input)
 	
@@ -114,12 +110,11 @@ def Test():
 		sourceImg = Image.fromarray(input[i].reshape(model.IMG_SIZE[1],model.IMG_SIZE[0]) * 255.0).convert("RGB")
 				
 		draw = ImageDraw.Draw(sourceImg)
-		draw.rectangle(output[i]*model.IMG_SIZE[1], outline="green")
-		draw.rectangle(results[i]*model.IMG_SIZE[1], outline="red")
+		draw.rectangle(generator.GetCoordsFromOutput(output[i],model.IMG_SIZE), outline="green")
+		draw.rectangle(generator.GetCoordsFromOutput(results[i],model.IMG_SIZE), outline="red")
 		
 		filepath = '/tmp/clock_%s_%d.png' % (generator.convertOutputToRect(output[i]), i)
 		sourceImg.save(filepath)
-		
 		
 	
 
