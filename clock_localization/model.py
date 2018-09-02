@@ -13,7 +13,7 @@ INCLUDE_SECONDS_HAND = False
 MODEL_H5_NAME = "clock.h5"
 MODEL_COREML_NAME = "../ios/MLclock/Assets/main/clock.mlmodel"
 MODEL_SUBDIVIDE = 100
-IMG_SIZE = [200,200,1]
+IMG_SIZE = [100,100,1]
 
 def doesModelExist():
 	return os.path.isfile(MODEL_H5_NAME)
@@ -30,10 +30,12 @@ def createModel(loadFromDisk):
 	model.add(Dropout(0.1))
 	
 	model.add(Conv2D(32, (3, 3)))
+	model.add(Activation('relu'))
 	model.add(MaxPooling2D(pool_size=(2, 2)))
 	model.add(Dropout(0.1))
 	
 	model.add(Conv2D(64, (3, 3)))
+	model.add(Activation('relu'))
 	model.add(MaxPooling2D(pool_size=(2, 2)))
 	model.add(Dropout(0.1))
 	

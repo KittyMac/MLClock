@@ -144,7 +144,7 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
         mainBundlePath = "bundle://Assets/main/main.xml"
         loadView()
         
-        overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/full_clock2.jpg")))
+        overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/full_clock7.jpg")))
         //overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/localization_test.png")))
         
         captureHelper.delegate = self

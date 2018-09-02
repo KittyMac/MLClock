@@ -11,7 +11,7 @@ class MLObjectLocalization {
     
     private var handler = VNSequenceRequestHandler()
     var model:VNCoreMLModel? = nil
-        
+    
     func updateImage(_ newImage:CIImage) {
         
         loadModel()
@@ -23,6 +23,117 @@ class MLObjectLocalization {
                 
                 let results = request.results as? [VNCoreMLFeatureValueObservation]
                 if results != nil {
+                    
+                    
+                    /*
+                    // TODO: we need an algorithm to identify multiple hotspots as our model can identify
+                    // multiple clock faces in one go.  Here's one idea:
+                    
+                    let output = results![0].featureValue.multiArrayValue!
+                    let subdiv = output.count / 2
+
+                    // 1. Create a grid which matches the grid of probabilities in dimensions
+                    // 2. Find the highest probability above a certain threshold, do a flood fill algorithm off of that an mark off the spots
+                    // 3. Repeat #2, but do not count previously used spots
+                    
+                    
+                    // 0. average the X and Y probabilities into one probability map
+                    var avgValues = Array(repeating: Array<Double>(repeating: 0.0, count: subdiv), count: subdiv)
+                    for x in 0..<subdiv {
+                        for y in 0..<subdiv {
+                            avgValues[x][y] = (output[x].doubleValue * output[subdiv+y].doubleValue)
+                        }
+                    }
+                    
+                    var grid = Array(repeating: Array(repeating: 0, count: subdiv), count: subdiv)
+                    let cropThreshold = 0.1
+                    let peakThreshold = 0.99
+                    var maxCropSize = 0
+                    while true {
+                        
+                        // find the highest point above threshold
+                        var peakValue = 0.0
+                        var peakX = 0
+                        var peakY = 0
+                        for x in 0..<subdiv {
+                            for y in 0..<subdiv {
+                                if grid[x][y] == 0 && avgValues[x][y] >= peakValue {
+                                    peakValue = avgValues[x][y]
+                                    peakX = x
+                                    peakY = y
+                                }
+                            }
+                        }
+                        
+                        // if we don't find any value above the thresold, we're done
+                        if peakValue < peakThreshold {
+                            break
+                        }
+                        
+                        // perform ez flood fill
+                        var ezScan: ((Int,Int,Int) -> Void)!
+                        var minX:Int = subdiv
+                        var minY:Int = subdiv
+                        var maxX:Int = 0
+                        var maxY:Int = 0
+                        var boxSize:Int = 0
+                        
+                        ezScan = { (startX, startY, direction) in
+                            var x = startX
+                            var y = startY
+                            
+                            while (x >= 0 && x < subdiv && y >= 0 && y < subdiv && grid[x][y] == 0 && avgValues[x][y] > cropThreshold) {
+                                
+                                grid[x][y] = 1
+                                boxSize += 1
+                                
+                                if x < minX {
+                                    minX = x
+                                }
+                                if y < minY {
+                                    minY = y
+                                }
+                                if x > maxX {
+                                    maxX = x
+                                }
+                                if y > maxY {
+                                    maxY = x
+                                }
+                                
+                                if direction == 0 { // scan to the right
+                                    x += 1
+                                } else if direction == 1 { // scan to the left
+                                    x -= 1
+                                } else if direction == 2 { // scan down
+                                    y -= 1
+                                } else if direction == 3 { // scan up
+                                    y += 1
+                                }
+                            }
+                        }
+                        
+                        ezScan(peakX, peakY, 0)
+                        ezScan(peakX, peakY, 1)
+                        ezScan(peakX, peakY, 2)
+                        ezScan(peakX, peakY, 3)
+                        
+                        if boxSize > maxCropSize {
+                            maxCropSize = boxSize
+                            
+                            print("peak: \(peakX),\(peakY) :: \(peakValue) :: \(boxSize)")
+                            
+                            let xscale = (newImage.extent.width / CGFloat(subdiv))
+                            let yscale = (newImage.extent.height / CGFloat(subdiv))
+                            
+                            self.bestCropRect = CGRect(x: CGFloat(minX)*xscale, y: newImage.extent.height - CGFloat(maxY)*yscale, width: CGFloat(maxX-minX)*xscale, height: CGFloat(maxY-minY)*yscale)
+                        }
+                    }
+                    
+                    print("crop: \(self.bestCropRect)")
+                    */
+                    
+
+                    
                     let output = results![0].featureValue.multiArrayValue!
                     let subdiv = output.count / 2
                     let xdelta = 1.0 / Double(subdiv)
@@ -33,15 +144,15 @@ class MLObjectLocalization {
                     var ymin = 1.0
                     var ymax = 0.0
                     
-                    var avgXValues = [Int](repeating: 0, count: subdiv)
-                    var avgYValues = [Int](repeating: 0, count: subdiv)
+                    var avgXValues = [Double](repeating: 0, count: subdiv)
+                    var avgYValues = [Double](repeating: 0, count: subdiv)
                     
                     for i in 0..<subdiv {
-                        avgXValues[i] = Int(output[i].doubleValue * 100)
-                        avgYValues[i] = Int(output[subdiv+i].doubleValue * 100)
+                        avgXValues[i] = output[i].doubleValue
+                        avgYValues[i] = output[subdiv+i].doubleValue
                     }
                     
-                    /*
+                    
                     if true {
                         // average by neighbors to bring down individual spikes
                         avgXValues[0] = (output[0].doubleValue + output[1].doubleValue) / 2.0
@@ -54,14 +165,14 @@ class MLObjectLocalization {
                             avgXValues[i] = (output[i].doubleValue + output[i-1].doubleValue + output[i+1].doubleValue) / 3.0
                             avgYValues[i] = (output[subdiv+i].doubleValue + output[subdiv+i-1].doubleValue + output[subdiv+i+1].doubleValue) / 3.0
                         }
-                    }*/
+                    }
                     
                     for x in 0..<subdiv {
                         for y in 0..<subdiv {
                             let xValue = (Double(x) * xdelta)
                             let yValue = (Double(y) * ydelta)
                             
-                            if avgXValues[x] >= 20 && avgYValues[y] >= 20 {
+                            if avgXValues[x] >= 0.5 && avgYValues[y] >= 0.5 {
                                 if xValue < xmin {
                                     xmin = xValue
                                 }

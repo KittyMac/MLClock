@@ -335,13 +335,13 @@ class ClockGenerator(keras.utils.Sequence):
 				if output[x] >= 0.5:
 					if xValue < xmin:
 						xmin = xValue
-					if xValue+xdelta > xmax:
-						xmax = xValue+xdelta
+					if xValue > xmax:
+						xmax = xValue
 				if output[subdiv+y] >= 0.5:
 					if yValue < ymin:
 						ymin = yValue
-					if yValue+ydelta > ymax:
-						ymax = yValue+ydelta
+					if yValue > ymax:
+						ymax = yValue
 
 		return (xmin*size[1],ymin*size[0],xmax*size[1],ymax*size[0])
 
@@ -349,14 +349,14 @@ if __name__ == '__main__':
 	
 	META_PATH = "./meta"
 	
-	size = [200,200,1]
+	size = [100,100,1]
 	
 	generator = ClockGenerator(size,True,0.2)
 	generator.shakeVariance = 0
 	
 	np.set_printoptions(threshold=20)
 	
-	input,output = generator.generateClocksForLocalization(20,64)	
+	input,output = generator.generateClocksForLocalization(100,64)	
 	for n in range(0,len(input)):
 		sourceImg = Image.fromarray(input[n].reshape(size[1],size[0]) * 255.0).convert("RGB")
 				
