@@ -2,7 +2,7 @@
 
 An experiment to train a model to read the current time off of analog clocks.
 
-![demo](https://github.com/KittyMac/MLClock/blob/master/meta/demo4.jpg?raw=true)
+![demo](https://github.com/KittyMac/MLClock/blob/master/meta/demo.gif?raw=true)
 
 
 ## Data Generation
