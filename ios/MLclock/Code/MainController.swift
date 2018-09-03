@@ -40,6 +40,10 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
         if bestCrop.size.width > 2.0 && bestCrop.size.height > 2.0 {
             detectTimeFromImage(localImage, objectLocalization.bestPerspective())
         }
+        
+        DispatchQueue.main.async {
+            self.preview.imageView.image = UIImage(ciImage: localImage)
+        }
     }
     
     
@@ -49,7 +53,6 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
         
         DispatchQueue.main.async {
             self.cropPreview.imageView.image = UIImage(ciImage: extractedImage)
-            self.preview.imageView.image = UIImage(ciImage: fullImage)
         }
         
         let handler = VNImageRequestHandler(ciImage: extractedImage)
@@ -104,21 +107,21 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
                 }
                                 
                 DispatchQueue.main.async {
-                    self.clockConfidence.label.text = String(format: "%0.2f%%", (bestHourConfidence + bestMinuteConfidence) * 50.0)
                 
-                    if (notclockConfidence + notclockConfidence > self.displayedClickConfidence) {
+                    if (notclockConfidence + notclockConfidence > self.displayedClickConfidence * 2.0) {
                         self.displayedClickConfidence = notclockConfidence
                         self.clockLabel.label.text = "no clock"
+                        self.clockConfidence.label.text = String(format: "%0.2f%%", (bestHourConfidence + bestMinuteConfidence) * 50.0)
                     }
                     
                     if (bestHourConfidence + bestMinuteConfidence > self.displayedClickConfidence) {
                         self.displayedClickConfidence = bestHourConfidence + bestMinuteConfidence
                         self.clockLabel.label.text = String(format: "%02d:%02d", bestHour, bestMinute)
-                        print("time: \(self.clockLabel.label.text!) confidence: \(self.clockConfidence.label.text!)")
+                        self.clockConfidence.label.text = String(format: "%0.2f%%", (bestHourConfidence + bestMinuteConfidence) * 50.0)
                     }
                 }
                 
-                displayedClickConfidence -= 0.00001
+                displayedClickConfidence -= 0.01
             }
             
         } catch {
@@ -144,7 +147,7 @@ class MainController: PlanetViewController, CameraCaptureHelperDelegate {
         mainBundlePath = "bundle://Assets/main/main.xml"
         loadView()
         
-        overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/full_clock7.jpg")))
+        //overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/full_clock8.jpg")))
         //overrideImage = CIImage(contentsOf: URL(fileURLWithPath: String(bundlePath: "bundle://Assets/main/debug/localization_test.png")))
         
         captureHelper.delegate = self

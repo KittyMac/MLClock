@@ -153,7 +153,7 @@ class MLObjectLocalization {
                     }
                     
                     
-                    if true {
+                    if false {
                         // average by neighbors to bring down individual spikes
                         avgXValues[0] = (output[0].doubleValue + output[1].doubleValue) / 2.0
                         avgXValues[subdiv-1] = (output[subdiv-1].doubleValue + output[subdiv-2].doubleValue) / 2.0
@@ -172,19 +172,19 @@ class MLObjectLocalization {
                             let xValue = (Double(x) * xdelta)
                             let yValue = (Double(y) * ydelta)
                             
-                            if avgXValues[x] >= 0.5 && avgYValues[y] >= 0.5 {
+                            if avgXValues[x] >= 0.99 && avgYValues[y] >= 0.99 {
                                 if xValue < xmin {
                                     xmin = xValue
                                 }
-                                if xValue + xdelta > xmax {
-                                    xmax = xValue + xdelta
+                                if xValue > xmax {
+                                    xmax = xValue
                                 }
 
                                 if yValue < ymin {
                                     ymin = yValue
                                 }
-                                if yValue + ydelta > ymax {
-                                    ymax = yValue + ydelta
+                                if yValue > ymax {
+                                    ymax = yValue
                                 }
                             }
                         }
@@ -193,8 +193,7 @@ class MLObjectLocalization {
                     let xscale = newImage.extent.width
                     let yscale = newImage.extent.height
                     
-                    self.bestCropRect = CGRect(x: CGFloat(xmin)*xscale, y: yscale - CGFloat(ymax)*yscale, width: CGFloat(xmax-xmin)*xscale, height: CGFloat(ymax-ymin)*yscale)
-                    
+                    self.bestCropRect = CGRect(x: CGFloat(xmin)*xscale, y: yscale - CGFloat(ymax)*yscale, width: CGFloat(xmax-xmin)*xscale, height: CGFloat(ymax-ymin)*yscale)                    
                 }
                 
             } catch {

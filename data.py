@@ -240,7 +240,7 @@ class ClockGenerator(keras.utils.Sequence):
 				# Note about scale: we want tot weight it so that images with smaller scale
 				# happen more often, as smaller scale images can occupy more spaces on the screen.
 			
-				scale = self.easeInQuad(0.1, 0.9, random.random())
+				scale = self.easeInQuad(0.3, 0.9, random.random())
 				aspect = random.random() * 0.2 + 0.9
 				xscale = scale * aspect
 				yscale = scale / aspect
