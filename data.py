@@ -79,7 +79,7 @@ class ClockGenerator(keras.utils.Sequence):
 	def generateClockImage(self,hourHandAngle,minuteHandAngle,secondHandAngle,hasBackground=True):
 
 		offset = (int(random.random() * self.shakeVariance - self.shakeVariance / 2), int(random.random() * self.shakeVariance - self.shakeVariance / 2))
-		rotation_offset = ((random.random() * self.shakeVariance - self.shakeVariance / 2) * 2) / 4
+		rotation_offset = ((random.random() * self.shakeVariance - self.shakeVariance / 2) * 2)
 		
 		scaleVariance = int(128 + ((random.random() - 0.5) * self.shakeVariance * 2.0))
 		scaleVariance = (scaleVariance,scaleVariance)
@@ -352,10 +352,16 @@ if __name__ == '__main__':
 	size = [100,100,1]
 	
 	generator = ClockGenerator(size,True,0.2)
-	generator.shakeVariance = 0
+	generator.shakeVariance = 16
 	
 	np.set_printoptions(threshold=20)
 	
+	input,output = generator.generateClockFaces(64)	
+	for n in range(0,len(input)):
+		sourceImg = Image.fromarray(input[n].reshape(size[1],size[0]) * 255.0).convert("RGB")
+		sourceImg.save('/tmp/clock_%s_%d.png' % (generator.convertOutputToRect(output[n]), n))
+	
+	'''
 	input,output = generator.generateClocksForLocalization(100,64)	
 	for n in range(0,len(input)):
 		sourceImg = Image.fromarray(input[n].reshape(size[1],size[0]) * 255.0).convert("RGB")
@@ -364,5 +370,6 @@ if __name__ == '__main__':
 		draw.rectangle(generator.GetCoordsFromOutput(output[n],size), outline="green")		
 		
 		sourceImg.save('/tmp/clock_%s_%d.png' % (generator.convertOutputToRect(output[n]), n))
+	'''
 	
 	

@@ -12,7 +12,7 @@ import os
 INCLUDE_SECONDS_HAND = False
 MODEL_H5_NAME = "time.h5"
 MODEL_COREML_NAME = "../ios/MLclock/Assets/main/time.mlmodel"
-IMG_SIZE = [128,128,1]
+IMG_SIZE = [100,100,1]
 
 def doesModelExist():
 	return os.path.isfile(MODEL_H5_NAME)
@@ -21,12 +21,7 @@ def createModel(loadFromDisk):
 
 	model = Sequential()
 
-	model.add(Conv2D(16, (5, 5), input_shape=(IMG_SIZE[1], IMG_SIZE[0], IMG_SIZE[2])))
-	model.add(Activation('relu'))
-	model.add(MaxPooling2D(pool_size=(2, 2)))
-	model.add(Dropout(0.1))
-	
-	model.add(Conv2D(32, (3, 3)))
+	model.add(Conv2D(32, (5, 5), input_shape=(IMG_SIZE[1], IMG_SIZE[0], IMG_SIZE[2])))
 	model.add(Activation('relu'))
 	model.add(MaxPooling2D(pool_size=(2, 2)))
 	model.add(Dropout(0.1))
@@ -35,11 +30,14 @@ def createModel(loadFromDisk):
 	model.add(Activation('relu'))
 	model.add(MaxPooling2D(pool_size=(2, 2)))
 	model.add(Dropout(0.1))
+	
+	model.add(Conv2D(128, (3, 3)))
+	model.add(Activation('relu'))
+	model.add(MaxPooling2D(pool_size=(2, 2)))
+	model.add(Dropout(0.1))
 
 	model.add(Flatten())
 	model.add(Dense(512))
-	model.add(Activation('relu'))
-	model.add(Dense(256))
 	model.add(Activation('relu'))
 	if INCLUDE_SECONDS_HAND:
 		model.add(Dense(1+12+60+60))
